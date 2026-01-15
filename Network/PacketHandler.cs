@@ -18,6 +18,7 @@ public class PacketHandler
     {
         _handlers.Add(PacketID.LoginRequest, HandleLoginRequest);
         _handlers.Add(PacketID.EnterWorldRequest, HandleEnterWorldRequest);
+        _handlers.Add(PacketID.PlayerMoveRequest, HandlePlayerMoveRequest);
     }
 
     public Task OnRecvPacket(UserSession session, PacketID id, string json)
@@ -112,6 +113,8 @@ public class PacketHandler
             return;
         }
 
+        Console.WriteLine($"캐릭터 맵: {character.map}");
+
         Player player = new Player(session, character);
 
         Map targetMap = WorldManager.Instance.GetMap(player.Map);
@@ -143,8 +146,26 @@ public class PacketHandler
         Console.WriteLine($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
     }
 
-    private Task HandleMoveRequest(UserSession session, string json)
+    private Task HandlePlayerMoveRequest(UserSession session, string json)
     {
+        Console.WriteLine($"무브패킷 도착: {json}");
+        PlayerMoveRequest req = JsonSerializer.Deserialize<PlayerMoveRequest>(json);
+
+        //int playerId = session.MyPlayer.CharacterId;
+
+        Map targetMap = WorldManager.Instance.GetMap(session.MyPlayer.Map);
+
+        PlayerMoveResponse res = new PlayerMoveResponse
+        {
+            PlayerId = session.MyPlayer.CharacterId,
+            PosX = req.PosX,
+            PosY = req.PosY,
+            PosZ = req.PosZ
+        };
+
+        Console.WriteLine("브로드캐스트");
+        targetMap.Broadcast(res, session.MyPlayer.CharacterId);
+
         return Task.CompletedTask;
     }
 }

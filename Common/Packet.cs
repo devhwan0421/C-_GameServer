@@ -14,9 +14,9 @@ public enum PacketID : ushort
     EnterWorldResponse = 8,
     ExistingPlayerListResponse = 9,
     SpawnPlayerResponse = 10,
-    ServerMessageResponse = 800
-    //MoveRequest = 3,
-    //MoveResponse = 4
+    PlayerMoveRequest = 11,
+    PlayerMoveResponse = 12,
+    ServerMessageResponse = 800,
 }
 
 public interface IPacket
@@ -131,4 +131,23 @@ public class ServerMessageResponse : IPacket
 {
     public PacketID PacketId => PacketID.ServerMessageResponse;
     public string Message { get; set; }
+}
+
+[Serializable]
+public class PlayerMoveRequest : IPacket
+{
+    public PacketID PacketId => PacketID.PlayerMoveRequest;
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
+}
+
+[Serializable]
+public class PlayerMoveResponse : IPacket
+{
+    public PacketID PacketId => PacketID.PlayerMoveResponse;
+    public int PlayerId { get; set; }
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
 }

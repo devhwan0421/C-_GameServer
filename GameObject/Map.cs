@@ -36,6 +36,7 @@ public class Map
         //해당 플레이어 맵에 추가
         _players[newPlayer.CharacterId] = newPlayer;
         newPlayer.CurrentMap = this;
+        Console.WriteLine($"플레이어 id: {newPlayer.CharacterId} 를 Map: {MapId}에 추가");
 
         //해당 플레이어 스폰 브로드캐스트
         SpawnPlayerResponse spawnSelf = new SpawnPlayerResponse
