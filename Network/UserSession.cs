@@ -162,6 +162,20 @@ public class UserSession
             }
         }
     }
+    public void Send(ArraySegment<byte> sendBuff)
+    {
+        lock (_lock)
+        {
+            if (_isDisconnected == 1) return;
+
+            _sendQueue.Enqueue(sendBuff);
+
+            if (_pendingList.Count == 0)
+            {
+                RegisterSend();
+            }
+        }
+    }
 
     private void RegisterSend()
     {

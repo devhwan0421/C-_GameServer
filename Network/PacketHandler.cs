@@ -2,6 +2,7 @@
 using MySqlConnector;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -19,6 +20,8 @@ public class PacketHandler
         _handlers.Add(PacketID.LoginRequest, HandleLoginRequest);
         _handlers.Add(PacketID.EnterWorldRequest, HandleEnterWorldRequest);
         _handlers.Add(PacketID.PlayerMoveRequest, HandlePlayerMoveRequest);
+        _handlers.Add(PacketID.UseItemRequest, HandleUseItemRequest);
+        _handlers.Add(PacketID.DropItemRequest, HandleDropItemRequest);
     }
 
     public Task OnRecvPacket(UserSession session, PacketID id, string json)
@@ -27,7 +30,7 @@ public class PacketHandler
         {
             return handler.Invoke(session, json);
         }
-
+        Console.WriteLine("정의되지 않은 패킷이 수신되었습니다.");
         return Task.CompletedTask;
     }
 
@@ -35,10 +38,11 @@ public class PacketHandler
     {
         var req = JsonSerializer.Deserialize<LoginRequest>(json);
 
-        LoginDto loginDto = await DbTransactionWorker.Instance.PushQuery(db =>
+        /*LoginDto loginDto = await DbTransactionWorker.Instance.PushQuery(db =>
         {
             return DbManager.LoginRequest(db, req.Username, req.Password);
-        });
+        });*/
+        LoginDto loginDto = await DbManager.LoginRequest(req.Username, req.Password);
 
         if (loginDto == null)
         {
@@ -55,10 +59,11 @@ public class PacketHandler
         session.Send(res);
         Console.WriteLine($"[Login Success] {req.Username}");
 
-        List<CharacterDto> characters = await DbTransactionWorker.Instance.PushQuery(db =>
+        /*List<CharacterDto> characters = await DbTransactionWorker.Instance.PushQuery(db =>
         {
             return DbManager.GetCharacterListByUserId(db, loginDto.id);
-        });
+        });*/
+        List<CharacterDto> characters = await DbManager.GetCharacterListByUserId(loginDto.id);
 
         if (characters == null)
         {
@@ -71,7 +76,7 @@ public class PacketHandler
         GetCharacterListResponse res2 = new GetCharacterListResponse(); //월드 들어가기 전까지 임시로 가지고 있다가 활용하는 게 좋을 듯
                                                                         //월드 접속 시 DB 조회 안 해도 됨
 
-        foreach (var dbData in characters)
+        foreach (var dbData in characters) //Linq로 변환할 것
         {
             res2.Characters.Add(new CharacterInfo
             {
@@ -102,10 +107,11 @@ public class PacketHandler
         //Console.WriteLine($"[유저] ({session.AccountId}) 패킷 처리 시작");
         //await Task.Delay(1000);
 
-        CharacterDto character = await DbTransactionWorker.Instance.PushQuery(db =>
+        /*CharacterDto character = await DbTransactionWorker.Instance.PushQuery(db =>
         {
             return DbManager.GetCharacterByCharacterId(db, req.CharacterId);
-        });
+        });*/
+        CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
 
         if (character == null)
         {
@@ -126,6 +132,7 @@ public class PacketHandler
 
         EnterWorldResponse res = new EnterWorldResponse
         {
+            Success = true,
             Character = new CharacterInfo
             {
                 CharacterId = character.id,
@@ -142,6 +149,40 @@ public class PacketHandler
         };
         session.Send(res);
         //Console.WriteLine($"[Send] {JsonSerializer.Serialize(res)}");
+
+        //이렇게 모든 걸 핸들러에서 처리하는게 맞나? 고민해 봐야할 듯
+        //인벤토리 정보
+        /*List<InventoryDto> inventory = await DbTransactionWorker.Instance.PushQuery(db =>
+        {
+            return DbManager.GetInventoryByOwnerId(db, player.CharacterId);
+        });*/
+        List<InventoryDto> inventory = await DbManager.GetInventoryByOwnerId(player.CharacterId);
+
+        foreach (InventoryDto inventoryDto in inventory)
+        {
+            Console.WriteLine($"인벤토리 아이템 - ID: {inventoryDto.item_id}, 개수: {inventoryDto.count}, 장착 여부: {inventoryDto.is_equipped}, 강화 수치: {inventoryDto.enhancement}");
+        }
+
+        if (inventory != null)
+        {
+            InventoryResponse inventoryResponse = new InventoryResponse
+            {
+                Items = inventory.Select(dto => new ItemInfo
+                {
+                    InventoryId = dto.id,
+                    OwnerId = dto.owner_id,
+                    ItemId = dto.item_id,
+                    Count = dto.count,
+                    IsEquipped = (dto.is_equipped == 1),
+                    Enhancement = dto.enhancement
+                }).ToList()
+            };
+
+            //서버에 인벤토리 캐싱
+            player.Inventory.InitInventory(inventoryResponse.Items);
+
+            session.Send(inventoryResponse);
+        }
 
         Console.WriteLine($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
     }
@@ -165,6 +206,24 @@ public class PacketHandler
 
         Console.WriteLine("브로드캐스트");
         targetMap.Broadcast(res, session.MyPlayer.CharacterId);
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleUseItemRequest(UserSession session, string json)
+    {
+        UseItemRequest req = JsonSerializer.Deserialize<UseItemRequest>(json);
+
+        session.MyPlayer.Inventory.UseItem(session, req.InventoryId);
+
+        return Task.CompletedTask;
+    }
+
+    private Task HandleDropItemRequest(UserSession session, string json)
+    {
+        DropItemRequest req = JsonSerializer.Deserialize<DropItemRequest>(json);
+
+        session.MyPlayer.Inventory.DropItem(req.InventoryId, req.MapId);
 
         return Task.CompletedTask;
     }

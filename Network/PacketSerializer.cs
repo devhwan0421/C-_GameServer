@@ -13,6 +13,21 @@ public static class PacketSerializer
 
     public static ArraySegment<byte> Serialize(ushort id, string json)
     {
+        byte[] buffer = SendBuffer.Value;
+        int bodySize = Encoding.UTF8.GetBytes(json, 0, json.Length, buffer, 4);
+        ushort totalSize = (ushort)(bodySize + 4);
+
+        BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(buffer, 0, 2), totalSize);
+        BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(buffer, 2, 2), id);
+
+        byte[] packetData = new byte[totalSize];
+        Buffer.BlockCopy(buffer, 0, packetData, 0, totalSize);
+
+        return new ArraySegment<byte>(packetData);
+    }
+
+    /*public static ArraySegment<byte> Serialize(ushort id, string json)
+    {
         byte[] body = Encoding.UTF8.GetBytes(json);
         ushort size = (ushort)(body.Length + 4);
         byte[] buffer = SendBuffer.Value;
@@ -31,5 +46,5 @@ public static class PacketSerializer
         byte[] packetData = new byte[size];
         Array.Copy(buffer, 0, packetData, 0, size);
         return new ArraySegment<byte>(packetData);
-    }
+    }*/
 }

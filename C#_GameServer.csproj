@@ -45,11 +45,14 @@
     <Compile Include="DB\DbTransactionWorker.cs" />
     <Compile Include="DB\Dto\RequestDto.cs" />
     <Compile Include="GameLogicThread.cs" />
+    <Compile Include="GameObject\Inventory.cs" />
     <Compile Include="GameObject\Map.cs" />
     <Compile Include="GameObject\Player.cs" />
     <Compile Include="Manager\LoginManager.cs" />
     <Compile Include="Manager\WorldManager.cs" />
     <Compile Include="Network\PacketHandler.cs" />
+    <Compile Include="Network\PacketMaker.cs" />
+    <Compile Include="Network\PacketSender.cs" />
     <Compile Include="Network\PacketSerializer.cs" />
     <Compile Include="Manager\PlayerManager.cs" />
     <Compile Include="Program.cs" />

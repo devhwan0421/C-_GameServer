@@ -16,6 +16,13 @@ public enum PacketID : ushort
     SpawnPlayerResponse = 10,
     PlayerMoveRequest = 11,
     PlayerMoveResponse = 12,
+    InventoryResponse = 13,
+    UseItemRequest = 14,
+    UseItemResponse = 15,
+    DropItemRequest = 16,
+    DropItemResponse = 17,
+    SpawnItemRequest = 18,
+    SpawnItemResponse = 19,
     ServerMessageResponse = 800,
 }
 
@@ -69,7 +76,6 @@ public class GetCharacterRequest : IPacket
 public class GetCharacterResponse : IPacket
 {
     public PacketID PacketId => PacketID.GetCharacterResponse;
-
     public CharacterInfo Character { get; set; }
 }
 
@@ -100,6 +106,7 @@ public class EnterWorldResponse : IPacket
 {
     public PacketID PacketId => PacketID.EnterWorldResponse;
     public CharacterInfo Character { get; set; }
+    public bool Success { get; set; }
 }
 
 [Serializable]
@@ -150,4 +157,63 @@ public class PlayerMoveResponse : IPacket
     public float PosX { get; set; }
     public float PosY { get; set; }
     public float PosZ { get; set; }
+}
+
+[Serializable]
+public class ItemInfo
+{
+    public int InventoryId { get; set; }
+    public int OwnerId { get; set; }
+    public int ItemId { get; set; }
+    public int Count { get; set; }
+    public bool IsEquipped { get; set; }
+    public int Enhancement { get; set; }
+}
+
+[Serializable]
+public class InventoryResponse : IPacket
+{
+    public PacketID PacketId => PacketID.InventoryResponse;
+    public List<ItemInfo> Items { get; set; }
+}
+
+[Serializable]
+public class UseItemRequest : IPacket
+{
+    public PacketID PacketId => PacketID.UseItemRequest;
+    public int InventoryId { get; set; }
+}
+
+[Serializable]
+public class UseItemResponse : IPacket
+{
+    public PacketID PacketId => PacketID.UseItemResponse;
+    public int InventoryId { get; set; }
+    public bool Success { get; set; }
+}
+
+[Serializable]
+public class DropItemRequest : IPacket
+{
+    public PacketID PacketId => PacketID.DropItemRequest;
+    public int InventoryId { get; set; }
+    public int MapId { get; set; }
+}
+
+[Serializable]
+public class DropItemResponse : IPacket
+{
+    public PacketID PacketId => PacketID.DropItemResponse;
+    public ItemInfo Item { get; set; }
+    public int MapId { get; set; }
+    public bool Success { get; set; }
+}
+
+[Serializable]
+public class SpawnItemResponse : IPacket
+{
+    public PacketID PacketId => PacketID.SpawnItemResponse;
+    public ItemInfo Item { get; set; }
+    public int MapId { get; set; }
+    public bool Success { get; set; }
 }

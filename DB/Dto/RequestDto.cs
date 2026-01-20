@@ -24,3 +24,13 @@ public class CharacterDto
     public float pos_y { get; set; }
     public float pos_z { get; set; }
 }
+
+public class InventoryDto
+{
+    public int id { get; set; }
+    public int owner_id { get; set; }
+    public int item_id { get; set; }
+    public int count { get; set; }
+    public int is_equipped { get; set; }
+    public int enhancement { get; set; }
+}

@@ -8,21 +8,7 @@ using static System.Collections.Specialized.BitVector32;
 
 public class Player
 {
-    public int CharacterId { get; set; }
-    public int UserId { get; set; }
-    public string Nickname { get; set; }
-    public int ClassId { get; set; }
-    public int Level { get; set; }
-    public int Exp { get; set; }
-    public int Map { get; set; }
-    public float PosX { get; set; }
-    public float PosY { get; set; }
-    public float PosZ { get; set; }
-    public UserSession Session { get; set; }
-
-    public Map CurrentMap { get; set; }
-
-    //public PlayerState { get; set; }
+    public readonly UserSession _mySession;
 
     public Player(UserSession session, CharacterDto character)
     {
@@ -36,8 +22,26 @@ public class Player
         PosX = character.pos_x;
         PosY = character.pos_y;
         PosZ = character.pos_z;
-        Session = session;
+        _mySession = session;
+        Inventory = new Inventory(session);
     }
 
-    public void Send<T>(T packet) where T : IPacket => Session.Send(packet);
+    public int CharacterId { get; set; }
+    public int UserId { get; set; }
+    public string Nickname { get; set; }
+    public int ClassId { get; set; }
+    public int Level { get; set; }
+    public int Exp { get; set; }
+    public int Map { get; set; }
+    public float PosX { get; set; }
+    public float PosY { get; set; }
+    public float PosZ { get; set; }
+
+    public Map CurrentMap { get; set; }
+
+    public Inventory Inventory { get; set; }
+
+    //public PlayerState { get; set; }
+
+    public void Send<T>(T packet) where T : IPacket => _mySession.Send(packet);
 }
