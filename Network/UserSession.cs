@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -58,7 +59,8 @@ public class UserSession
 
     private void RegisterRecv()
     {
-        _recvBuffer.Clean();
+        if (_recvBuffer.FreeSize < _recvBuffer.UnderlyingArray.Length /4)
+            _recvBuffer.Clean();
 
         ArraySegment<byte> writeSegment = _recvBuffer.WriteSegment;
 
@@ -100,6 +102,9 @@ public class UserSession
                 if (data.Count < 4) break;
 
                 ushort size = BitConverter.ToUInt16(data.Array, data.Offset);
+
+                if (size < 4) break;
+
                 ushort id = BitConverter.ToUInt16(data.Array, data.Offset + 2);
 
                 //패킷이 다 안 왔으면 탈출
@@ -123,6 +128,7 @@ public class UserSession
         }
         else
         {
+            Console.WriteLine("ProcessReceive에서 종료");
             DisConnect();
         }
     }
@@ -177,12 +183,44 @@ public class UserSession
         }
     }
 
+    private const int MAX_SEND_SIZE = 8192;
+    private ArraySegment<byte> _reservePacket;
+
     private void RegisterSend()
     {
-        while (_sendQueue.Count > 0)
+        int totalPacketSize = 0;
+
+        while (totalPacketSize < MAX_SEND_SIZE)
         {
-            _pendingList.Add(_sendQueue.Dequeue());
+            ArraySegment<byte> packet;
+
+            if(_reservePacket.Count > 0)
+            {
+                packet = _reservePacket;
+                _reservePacket = default;
+            }
+            else if (_sendQueue.Count > 0) packet = _sendQueue.Dequeue();
+            else break;
+
+            int packetSize = packet.Count;
+            int availableSize = MAX_SEND_SIZE - totalPacketSize;
+
+            if (packetSize > availableSize)
+            {
+                _pendingList.Add(new ArraySegment<byte>(packet.Array, packet.Offset, availableSize));
+
+                _reservePacket = new ArraySegment<byte>(packet.Array, packet.Offset + availableSize, packetSize - availableSize);
+
+                totalPacketSize += availableSize;
+                break;
+            }
+            else
+            {
+                _pendingList.Add(packet);
+                totalPacketSize += packetSize;
+            }
         }
+
         _sendArgs.BufferList = _pendingList;
         //Console.WriteLine($"[Debug] RegisterSend: Sending {_pendingList.Count} packets combined."); // 로그 추가
 
@@ -192,6 +230,40 @@ public class UserSession
             ProcessSend(_sendArgs);
         }
     }
+    /*private void RegisterSend()
+    {
+        int currentTotalSize = 0;
+
+        //while (_sendQueue.Count > 0)
+        while (currentTotalSize < MAX_SEND_SIZE)
+        {
+            ArraySegment<byte> packet = _sendQueue.Peek();
+            int remainPacket = packet.Count;
+
+            if(remainPacket > MAX_SEND_SIZE - currentTotalSize)
+            {
+                if (currentTotalSize > 0) break;
+
+                int sendSize = MAX_SEND_SIZE;
+
+                _pendingList.Add(new ArraySegment<byte>(packet.Array, packet.Offset, sendSize));
+                _sendQueue.Dequeue();
+                _sendQueue.Enqueue(new ArraySegment<byte>(packet.Array, packet.Offset + sendSize, remainPacket - sendSize));
+                break;
+            }
+
+            _pendingList.Add(_sendQueue.Dequeue());
+            currentTotalSize += packet.Count;
+        }
+        _sendArgs.BufferList = _pendingList;
+        //Console.WriteLine($"[Debug] RegisterSend: Sending {_pendingList.Count} packets combined."); // 로그 추가
+
+        bool pending = _socket.SendAsync(_sendArgs);
+        if (!pending)
+        {
+            ProcessSend(_sendArgs);
+        }
+    }*/
 
     private void ProcessSend(SocketAsyncEventArgs args)
     { 

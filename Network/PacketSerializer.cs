@@ -22,29 +22,10 @@ public static class PacketSerializer
 
         byte[] packetData = new byte[totalSize];
         Buffer.BlockCopy(buffer, 0, packetData, 0, totalSize);
+        
+        if(id != 12 && id != 28)
+            Console.WriteLine($"[Debug] Serialized Packet: ID={id}, Size={totalSize}, JSON={json}"); // 로그 추가
 
         return new ArraySegment<byte>(packetData);
     }
-
-    /*public static ArraySegment<byte> Serialize(ushort id, string json)
-    {
-        byte[] body = Encoding.UTF8.GetBytes(json);
-        ushort size = (ushort)(body.Length + 4);
-        byte[] buffer = SendBuffer.Value;
-
-        //헤더 작성
-        //buffer[0] = (byte)size; buffer[1] = (byte)(size >> 8);
-        //BitConverter.TryWriteBytes(new Span<byte>(buffer, 0, 2), size);
-        BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(buffer, 0, 2), size);
-        //BitConverter.TryWriteBytes(new Span<byte>(buffer, 2, 2), id);
-        BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(buffer, 2, 2), id);
-
-        //바디 복사
-        Array.Copy(body, 0, buffer, 4, body.Length); //4는 헤더 크기. 4바이트 뒤에 바디 복사
-
-        //실제 데이터가 담긴 영역만 잘라서 반환(참조 전달)
-        byte[] packetData = new byte[size];
-        Array.Copy(buffer, 0, packetData, 0, size);
-        return new ArraySegment<byte>(packetData);
-    }*/
 }

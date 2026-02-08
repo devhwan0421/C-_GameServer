@@ -27,7 +27,7 @@ public class PlayerManager
         if (_players.TryGetValue(playerId, out var player))
         {
             _players.Remove(playerId);
-            Map targetMap = WorldManager.Instance.GetMap(player.Map);
+            Map targetMap = MapManager.Instance.GetMap(player.Map);
             targetMap.Leave(playerId);
             Console.WriteLine(player.Nickname + $"님이 떠났습니다. (현재 동접: {_players.Count})");
         }

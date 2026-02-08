@@ -1,0 +1,9 @@
+{
+  "MonsterId": 1,
+  "Nickname": "AAAA",
+  "Hp": 100,
+  "MaxHp": 100,
+  "Damage": 10,
+  "Exp": 10,
+  "DropItemIdList" : [ 1, 2, 3, 4 ]
+}

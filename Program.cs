@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using System.Threading;
+using Serilog;
 
 class Program
 {
@@ -15,11 +16,21 @@ class Program
                                                                           //게임 로직 스레드는 Thread 한개
                                                                           //DB 워커 스레드는 Thread 4개
 
-        WorldManager.Instance.Init();
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Console()
+            .WriteTo.File("logs/lo-.txt", rollingInterval: RollingInterval.Day)
+            .CreateLogger();
+        Log.Information("로그 기록 시작");
 
         PacketHandler handler = new PacketHandler();
-        GameLogicThread gameLogicThread = new GameLogicThread();
+        /*GameLogicThread gameLogicThread = new GameLogicThread();
+        gameLogicThread.Start();*/
+        GameLogicThread gameLogicThread = GameLogicThread.Instance;
         gameLogicThread.Start();
+
+        MapManager.Instance.Init();
+        //gameLogicThread.Enqueue(() => WorldManager.Instance.Update());
 
         DbTransactionWorker.Instance.Start(4, gameLogicThread);
 

@@ -1,0 +1,8 @@
+{
+  "ItemId": 1,
+  "Name": "사과",
+  "Type": 0,
+  "MaxStack": 100,
+  "Grade": 0,
+  "HealAmount": 50
+}

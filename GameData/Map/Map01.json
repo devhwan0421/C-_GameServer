@@ -1,0 +1,25 @@
+{
+  "MapId": 1,
+  "MonsterPatrolInfo": [
+    {
+      "MonsterId": 1,
+      "PosX": 0.0,
+      "PosY": 0.0,
+      "MinPosX": -4.5,
+      "MinPosY": 7.0
+    },
+    {
+      "MonsterId": 2,
+      "PosX": 0.0,
+      "PosY": 4.3,
+      "MinPosX": -4.5,
+      "MinPosY": 7.0
+    },
+    {
+      "MonsterId": 3,
+      "PosX": 0.0,
+      "PosY": -3.5,
+      "MinPosX": -7.5,
+      "MinPosY": 7.0
+    }
+}

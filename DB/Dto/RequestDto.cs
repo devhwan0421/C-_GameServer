@@ -23,6 +23,9 @@ public class CharacterDto
     public float pos_x { get; set; }
     public float pos_y { get; set; }
     public float pos_z { get; set; }
+    public int hp { get; set; }
+    public int max_hp { get; set; }
+    public int damage { get; set; }
 }
 
 public class InventoryDto

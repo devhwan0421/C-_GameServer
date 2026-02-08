@@ -40,19 +40,42 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common\Packet.cs" />
+    <Compile Include="DataManage\ItemData.cs" />
+    <Compile Include="DataManage\MapData.cs" />
+    <Compile Include="DataManage\NpcData.cs" />
+    <Compile Include="DataManage\QuestData.cs" />
+    <Compile Include="DataManage\Template\MapTemplate.cs" />
+    <Compile Include="DataManage\Template\MonsterTemplate.cs" />
+    <Compile Include="DataManage\Template\NpcTemplate.cs" />
+    <Compile Include="DataManage\Template\QuestTemplate.cs" />
     <Compile Include="DB\DbManager.cs" />
     <Compile Include="DB\DbJob.cs" />
     <Compile Include="DB\DbTransactionWorker.cs" />
     <Compile Include="DB\Dto\RequestDto.cs" />
     <Compile Include="GameLogicThread.cs" />
     <Compile Include="GameObject\Inventory.cs" />
+    <Compile Include="DataManage\Template\ItemTemplate.cs" />
     <Compile Include="GameObject\Map.cs" />
+    <Compile Include="GameObject\Monster.cs" />
     <Compile Include="GameObject\Player.cs" />
+    <Compile Include="GameObject\Quest.cs" />
+    <Compile Include="DataManage\DataManager.cs" />
+    <Compile Include="Game\Dialogue\DialogueAcceptDecline.cs" />
+    <Compile Include="Game\Dialogue\DialogueBase.cs" />
+    <Compile Include="Game\Dialogue\DialogueNext.cs" />
+    <Compile Include="Game\Dialogue\DialogueOk.cs" />
+    <Compile Include="Game\Dialogue\DialogueSelection.cs" />
+    <Compile Include="Game\Dialogue\DialogueSimple.cs" />
+    <Compile Include="Game\Quest\QuestComponent.cs" />
+    <Compile Include="Game\Quest\QuestCondition.cs" />
+    <Compile Include="Game\Quest\QuestProgress.cs" />
     <Compile Include="Manager\LoginManager.cs" />
-    <Compile Include="Manager\WorldManager.cs" />
+    <Compile Include="DataManage\MonsterData.cs" />
+    <Compile Include="Manager\NpcManager.cs" />
+    <Compile Include="Manager\QuestManager.cs" />
+    <Compile Include="Manager\MapManager.cs" />
     <Compile Include="Network\PacketHandler.cs" />
     <Compile Include="Network\PacketMaker.cs" />
-    <Compile Include="Network\PacketSender.cs" />
     <Compile Include="Network\PacketSerializer.cs" />
     <Compile Include="Manager\PlayerManager.cs" />
     <Compile Include="Program.cs" />
@@ -67,14 +90,30 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=10.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.10.0.1\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions, Version=8.0.0.2, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.2\lib\net462\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=8.0.0.2, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Extensions.Logging.Abstractions.8.0.2\lib\net462\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
+    <Reference Include="MoonSharp.Interpreter, Version=2.0.0.0, Culture=neutral, PublicKeyToken=921e73ce94aa17f8, processorArchitecture=MSIL">
+      <HintPath>packages\MoonSharp.2.0.0.0\lib\net40-client\MoonSharp.Interpreter.dll</HintPath>
+    </Reference>
     <Reference Include="MySqlConnector, Version=2.0.0.0, Culture=neutral, PublicKeyToken=d33d3e53aa5f8c92, processorArchitecture=MSIL">
       <HintPath>packages\MySqlConnector.2.5.0\lib\net471\MySqlConnector.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>packages\Newtonsoft.Json.13.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog, Version=4.2.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>packages\Serilog.4.2.0\lib\net471\Serilog.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.Console, Version=6.1.1.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>packages\Serilog.Sinks.Console.6.1.1\lib\net471\Serilog.Sinks.Console.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.File, Version=7.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>packages\Serilog.Sinks.File.7.0.0\lib\net471\Serilog.Sinks.File.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.5.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -103,10 +142,16 @@
     <Reference Include="System.Text.Json, Version=10.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\System.Text.Json.10.0.1\lib\net462\System.Text.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.Threading.Channels, Version=8.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>packages\System.Threading.Channels.8.0.0\lib\net462\System.Threading.Channels.dll</HintPath>
+    </Reference>
     <Reference Include="System.Threading.Tasks.Extensions, Version=4.2.4.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\System.Threading.Tasks.Extensions.4.6.3\lib\net462\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
     <Reference Include="System.Transactions" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Game\Npc\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

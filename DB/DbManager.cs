@@ -79,7 +79,7 @@ public class DbManager
     }*/
 
     public static Task<List<InventoryDto>> GetInventoryByOwnerId(int ownerId)
-        => Find<InventoryDto>("SELECT * FROM inventory WHERE owner_id = @OwnerId",
+        => Find<InventoryDto>("SELECT * FROM inventory WHERE owner_id = @OwnerId AND count > 0",
             new { OwnerId = ownerId });
 
     /*public static List<InventoryDto> GetInventoryByOwnerId(IDbConnection db, int ownerId)
@@ -90,9 +90,9 @@ public class DbManager
         ).ToList();
     }*/
 
-    public static Task<int> DecreaseIntemCount(int ownerId, int itemId, int decreaseCount)
-        => Excute("UPDATE inventory SET count = count - @DecreaseCount WHERE owner_id = @OwnerId AND item_id = @ItemId",
-            new { OwnerId = ownerId, ItemId = itemId, DecreaseCount = decreaseCount });
+    public static Task<int> DecreaseIntemCount(int ownerId, int inventoryId, int decreaseCount)
+        => Excute("UPDATE inventory SET count = count - @DecreaseCount WHERE owner_id = @OwnerId AND id = @InventoryId",
+            new { OwnerId = ownerId, InventoryId = inventoryId, DecreaseCount = decreaseCount });
 
     public static Task<int> InsertItem(InventoryDto inventoryDto)
         => ExecuteScalar<int>(@"INSERT INTO inventory (owner_id, item_id, count, is_equipped, enhancement)
@@ -106,4 +106,8 @@ public class DbManager
                 IsEquipped = inventoryDto.is_equipped,
                 Enhancement = inventoryDto.enhancement
             });
+
+    public static Task<int> ItemOwnerUpdate(int inventoryId, int ownerId)
+        => Excute("UPDATE inventory SET owner_id = @OwnerId WHERE id = @InventoryId",
+            new { OwnerId = ownerId, InventoryId = inventoryId });
 }

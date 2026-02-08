@@ -22,6 +22,13 @@ public class PacketHandler
         _handlers.Add(PacketID.PlayerMoveRequest, HandlePlayerMoveRequest);
         _handlers.Add(PacketID.UseItemRequest, HandleUseItemRequest);
         _handlers.Add(PacketID.DropItemRequest, HandleDropItemRequest);
+        _handlers.Add(PacketID.MoveMapRequest, HandleMoveMapRequest);
+        _handlers.Add(PacketID.DropItemDestroyResponse, HandleDropItemRequest);
+        _handlers.Add(PacketID.PickUpItemRequest, HandlePickUpItemRequest);
+        _handlers.Add(PacketID.PlayerTakeDamageRequest, HandlePlayerTakeDamageRequest);
+        _handlers.Add(PacketID.PlayerHitRequest, HandlePlayerHitRequest);
+        _handlers.Add(PacketID.NpcTalkRequest, HandleNpcTalkRequest);
+        //_handlers.Add(PacketID.QuestAcceptRequest, HandleQuestRequest);
     }
 
     public Task OnRecvPacket(UserSession session, PacketID id, string json)
@@ -104,84 +111,29 @@ public class PacketHandler
     {
         EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
 
-        //Console.WriteLine($"[유저] ({session.AccountId}) 패킷 처리 시작");
-        //await Task.Delay(1000);
-
-        /*CharacterDto character = await DbTransactionWorker.Instance.PushQuery(db =>
-        {
-            return DbManager.GetCharacterByCharacterId(db, req.CharacterId);
-        });*/
+        //DB에서 캐릭터 정보 조회 => 로그인 때 조회한 정보 활용하는 걸로 바꿀 것(db x)
         CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
+        if (character == null) return;
 
-        if (character == null)
-        {
-            Console.WriteLine("[에러] 해당 캐릭터를 찾을 수 없습니다.");
-            return;
-        }
-
-        Console.WriteLine($"캐릭터 맵: {character.map}");
-
+        //플레이어 객체 생성 및 플레이어 매니저 등록 + 세션에 플레이어 연결
         Player player = new Player(session, character);
-
-        Map targetMap = WorldManager.Instance.GetMap(player.Map);
-
-        session.MyPlayer = player;
         PlayerManager.Instance.Enter(player);
+        session.MyPlayer = player;
 
-        targetMap.Enter(player);
+        //맵 조회 및 입장
+        Map targetMap = MapManager.Instance.GetMap(player.Map);
+        targetMap.Enter(player);//클라이언트랑 순서 맞춰야 함. 현재 좀 애매해짐 => 해당 유저 빼고 모두 브로드 캐스트. 이대로 진행
 
-        EnterWorldResponse res = new EnterWorldResponse
-        {
-            Success = true,
-            Character = new CharacterInfo
-            {
-                CharacterId = character.id,
-                UserId = character.user_id,
-                Nickname = character.nickname,
-                ClassId = character.class_id,
-                Level = character.level,
-                Exp = character.exp,
-                Map = character.map,
-                Pos_x = character.pos_x,
-                Pos_y = character.pos_y,
-                Pos_z = character.pos_z
-            }
-        };
-        session.Send(res);
-        //Console.WriteLine($"[Send] {JsonSerializer.Serialize(res)}");
-
-        //이렇게 모든 걸 핸들러에서 처리하는게 맞나? 고민해 봐야할 듯
-        //인벤토리 정보
-        /*List<InventoryDto> inventory = await DbTransactionWorker.Instance.PushQuery(db =>
-        {
-            return DbManager.GetInventoryByOwnerId(db, player.CharacterId);
-        });*/
+        //인벤토리 조회
         List<InventoryDto> inventory = await DbManager.GetInventoryByOwnerId(player.CharacterId);
-
-        foreach (InventoryDto inventoryDto in inventory)
-        {
-            Console.WriteLine($"인벤토리 아이템 - ID: {inventoryDto.item_id}, 개수: {inventoryDto.count}, 장착 여부: {inventoryDto.is_equipped}, 강화 수치: {inventoryDto.enhancement}");
-        }
-
         if (inventory != null)
         {
-            InventoryResponse inventoryResponse = new InventoryResponse
-            {
-                Items = inventory.Select(dto => new ItemInfo
-                {
-                    InventoryId = dto.id,
-                    OwnerId = dto.owner_id,
-                    ItemId = dto.item_id,
-                    Count = dto.count,
-                    IsEquipped = (dto.is_equipped == 1),
-                    Enhancement = dto.enhancement
-                }).ToList()
-            };
+            //세션의 플레이어 객체에 인벤토리 캐싱
+            player.Inventory.InitInventory(inventory);
 
-            //서버에 인벤토리 캐싱
-            player.Inventory.InitInventory(inventoryResponse.Items);
-
-            session.Send(inventoryResponse);
+            //리스폰스 전송
+            var enterWorldResponseBuff = PacketMaker.Instance.EnterWorldResponse(true, character, inventory, targetMap.GetPlayers(), targetMap.GetDropItems(), targetMap.GetMonsters());
+            session.Send(enterWorldResponseBuff);
         }
 
         Console.WriteLine($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
@@ -189,22 +141,28 @@ public class PacketHandler
 
     private Task HandlePlayerMoveRequest(UserSession session, string json)
     {
-        Console.WriteLine($"무브패킷 도착: {json}");
+        //Console.WriteLine($"무브패킷 도착: {json}");
         PlayerMoveRequest req = JsonSerializer.Deserialize<PlayerMoveRequest>(json);
 
         //int playerId = session.MyPlayer.CharacterId;
 
-        Map targetMap = WorldManager.Instance.GetMap(session.MyPlayer.Map);
+        Map targetMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
+        targetMap.UpdatePlayer(req.CharacterId, req.PosX, req.PosY, req.PosZ);
+
+        if (req.State == 3)
+            Console.WriteLine("3333333333333");
 
         PlayerMoveResponse res = new PlayerMoveResponse
         {
-            PlayerId = session.MyPlayer.CharacterId,
+            CharacterId = req.CharacterId,
             PosX = req.PosX,
             PosY = req.PosY,
-            PosZ = req.PosZ
+            PosZ = req.PosZ,
+            Dir = req.Dir,
+            State = req.State
         };
 
-        Console.WriteLine("브로드캐스트");
+        //Console.WriteLine("브로드캐스트");
         targetMap.Broadcast(res, session.MyPlayer.CharacterId);
 
         return Task.CompletedTask;
@@ -223,8 +181,56 @@ public class PacketHandler
     {
         DropItemRequest req = JsonSerializer.Deserialize<DropItemRequest>(json);
 
-        session.MyPlayer.Inventory.DropItem(req.InventoryId, req.MapId);
+        session.MyPlayer.Inventory.DropItem(session, req.InventoryId, req.MapId, req.PosX, req.PosY, req.PosZ);
 
         return Task.CompletedTask;
     }
+
+    private Task HandleMoveMapRequest(UserSession session, string json)
+    {
+        MoveMapRequest req = JsonSerializer.Deserialize<MoveMapRequest>(json);
+        Map currentMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
+        currentMap.ChangeMap(session.MyPlayer, req.TargetMapId, req.TargetPosX, req.TargetPosY);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePickUpItemRequest(UserSession session, string json)
+    {
+        PickUpItemRequest req = JsonSerializer.Deserialize<PickUpItemRequest>(json);
+        Map currentMap = MapManager.Instance.GetMap(req.MapId);
+        currentMap.PickUpItem(session, req.InventoryId);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePlayerTakeDamageRequest(UserSession session, string json)
+    {
+        PlayerTakeDamageRequest req = JsonSerializer.Deserialize<PlayerTakeDamageRequest>(json);
+        Map currentMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
+        currentMap.TakeDamage(req.CharacterId, req.Damage);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePlayerHitRequest(UserSession session, string json)
+    {
+        PlayerHitRequest req = JsonSerializer.Deserialize<PlayerHitRequest>(json);
+        Map currentMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
+        currentMap.PlayerHitMonster(session, req.CharacterId, req.SpawnId, req.AttackType, req.Damage, req.KnockbackDir);
+        return Task.CompletedTask;
+    }
+
+    private Task HandleNpcTalkRequest(UserSession session, string json)
+    {
+        //Console.WriteLine("대화요청");
+        NpcTalkRequest req = JsonSerializer.Deserialize<NpcTalkRequest>(json);
+        NpcManager.Instance.OnNpcTalk(session, req);
+        //NpcDialogueManager.Instance.GetDialouge(session, req);
+        return Task.CompletedTask;
+    }
+
+    /*private Task HandleQuestRequest(UserSession session, string json)
+    {
+        QuestAcceptRequest req = JsonSerializer.Deserialize<QuestAcceptRequest>(json);
+        QuestManager.Instance.AddQuest(session, req.NpcId, req.QuestId);
+        return Task.CompletedTask;
+    }*/
 }
