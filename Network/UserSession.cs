@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net.Sockets;
@@ -24,7 +25,10 @@ public class UserSession
     private RecvBuffer _recvBuffer;
     private Queue<ArraySegment<byte>> _sendQueue = new Queue<ArraySegment<byte>>(); //보내기 대기 중인 패킷들을 저장하는 큐
     private List<ArraySegment<byte>> _pendingList = new List<ArraySegment<byte>>(); //보내기 대기 중인 패킷들을 모아두는 리스트
-    
+
+    private const int MAX_SEND_SIZE = 65536;
+    private ArraySegment<byte> _reservePacket;
+
     private object _lock = new object();
     private readonly SemaphoreSlim _packetSemaphore = new SemaphoreSlim(1, 1);
 
@@ -59,6 +63,8 @@ public class UserSession
 
     private void RegisterRecv()
     {
+        if (_isDisconnected == 1) return;
+
         if (_recvBuffer.FreeSize < _recvBuffer.UnderlyingArray.Length /4)
             _recvBuffer.Clean();
 
@@ -129,13 +135,14 @@ public class UserSession
         else
         {
             Console.WriteLine("ProcessReceive에서 종료");
-            DisConnect();
+            _= DisConnect();
         }
     }
 
     public async Task ProcessPacketAsync(PacketID id, string json)
     {
-        await _packetSemaphore.WaitAsync(TimeSpan.FromSeconds(5));
+        await _packetSemaphore.WaitAsync();
+
         try
         {
             await _handler.OnRecvPacket(this, id, json);
@@ -145,6 +152,18 @@ public class UserSession
             _packetSemaphore.Release();
         }
     }
+    /*public async Task ProcessPacketAsync(PacketID id, string json)
+    {
+        await _packetSemaphore.WaitAsync(TimeSpan.FromSeconds(5)); //5초가 지나면 패킷이 무시될 수 있음. 상태 불일치 문제가 생길 수 있음
+        try
+        {
+            await _handler.OnRecvPacket(this, id, json);
+        }
+        finally
+        {
+            _packetSemaphore.Release();
+        }
+    }*/
 
     public void Send<T>(T packet) where T : IPacket
     {
@@ -182,9 +201,6 @@ public class UserSession
             }
         }
     }
-
-    private const int MAX_SEND_SIZE = 8192;
-    private ArraySegment<byte> _reservePacket;
 
     private void RegisterSend()
     {
@@ -282,26 +298,50 @@ public class UserSession
             else
             {
                 //Console.WriteLine($"[Error] ProcessSend Failed: Error={args.SocketError}"); // 에러 확인
-                DisConnect();
+                _= DisConnect();
             }
         }
     }
 
-    public void DisConnect()
+    public async Task<bool> DisConnect()
     {
-        if (Interlocked.Exchange(ref _isDisconnected, 1) == 1) { return; }
+        if (Interlocked.Exchange(ref _isDisconnected, 1) == 1) { return false; }
 
-        LoginManager.Instance.OnLogout(AccountId);
-        SessionManager.Instance.Remove(this.SessionId);
-
+        bool isLeaveSuccess = true;
         if (MyPlayer != null)
         {
             int playerId = MyPlayer.CharacterId;
-            _gameLogicThread.Enqueue(() =>
+
+            var tcs = new TaskCompletionSource<bool>();
+
+            _gameLogicThread.Enqueue(async () =>
             {
-                PlayerManager.Instance.Leave(playerId);
+                try
+                {
+                    bool result = await PlayerManager.Instance.Leave(playerId);
+                    tcs.SetResult(result);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[UserSession] Leave 처리 중 에러: {ex.Message}");
+                    tcs.SetResult(false);
+                }
             });
+            isLeaveSuccess = await tcs.Task;
+        }
+
+        //데이터 저장이 제대로 안 됐을 때를 대비해 일단 남겨둠
+        //해당 플레이어 데이터를 열람해서 확인 할 수 있는 기능을 만들어
+        //확인 후 문제 없다면 수동 업데이트 후 강제 로그아웃
+        if (isLeaveSuccess)
+        {
             MyPlayer = null;
+            LoginManager.Instance.OnLogout(AccountId);
+            SessionManager.Instance.Remove(this.SessionId);
+        }
+        else
+        {
+            Log.Fatal($"[UserSession] 로그아웃 중 치명적인 문제 발생 characterId {MyPlayer.CharacterId}");
         }
 
         try
@@ -318,7 +358,9 @@ public class UserSession
         var arrayToReturn = _recvBuffer.UnderlyingArray;
         if (arrayToReturn != null)
         {
-            Task.Delay(5000).ContinueWith(_ => ArrayPool<byte>.Shared.Return(arrayToReturn));
+            await Task.Delay(5000).ContinueWith(_ => ArrayPool<byte>.Shared.Return(arrayToReturn));
         }
+
+        return isLeaveSuccess;
     }
 }

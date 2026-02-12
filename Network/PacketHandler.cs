@@ -1,5 +1,7 @@
 ﻿using Dapper;
 using MySqlConnector;
+using Serilog;
+using Serilog.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,13 +33,31 @@ public class PacketHandler
         //_handlers.Add(PacketID.QuestAcceptRequest, HandleQuestRequest);
     }
 
+    /*public async Task OnRecvPacket(UserSession session, PacketID id, string json)
+    {
+        //int characterId = session.MyPlayer
+
+        using (LogContext.PushProperty("SessionId", session.SessionId))
+        using (LogContext.PushProperty("PacketID", id))
+        {
+            if (_handlers.TryGetValue(id, out var handler))
+            {
+                await handler.Invoke(session, json);
+            }
+            else
+            {
+                Log.Warning("[PacketHandler] 정의되지 않은 패킷이 수신되었습니다.");
+            }
+        }
+    }*/
     public Task OnRecvPacket(UserSession session, PacketID id, string json)
     {
-        if(_handlers.TryGetValue(id, out var handler))
+        if (_handlers.TryGetValue(id, out var handler))
         {
             return handler.Invoke(session, json);
         }
-        Console.WriteLine("정의되지 않은 패킷이 수신되었습니다.");
+
+        Log.Warning("[PacketHandler] 정의되지 않은 패킷이 수신되었습니다.");
         return Task.CompletedTask;
     }
 
@@ -59,7 +79,14 @@ public class PacketHandler
             return;
         }
 
-        LoginManager.Instance.TryLogin(loginDto.id, session);
+        bool result = await LoginManager.Instance.TryLogin(loginDto.id, session);
+        if (!result)
+        {
+            Log.Fatal("[PacketHandler] 로그인 실패(TryLogin)");
+
+            return;
+        }
+
         session.AccountId = loginDto.id;
 
         var res = new LoginResponse { Username = req.Username, Success = true, Message = "환영합니다. v0.1" };
@@ -115,6 +142,68 @@ public class PacketHandler
         CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
         if (character == null) return;
 
+        Task<List<InventoryDto>> inventoryTask = DbManager.GetInventoryByOwnerId(character.id);
+        Task<List<QuestDto>> questTask = DbManager.GetQuestByCharacterId(character.id);
+        Task<List<QuestProgressDto>> questProgressTask = DbManager.GetQuestProgressByCharacterId(character.id);
+
+        await Task.WhenAll(inventoryTask, questTask, questProgressTask);
+
+        var inventory = await inventoryTask;
+        var quest = await questTask;
+        var questProgress = await questProgressTask;
+
+        //플레이어 객체 생성 및 플레이어 매니저 등록 + 세션에 플레이어 연결
+        Player player = new Player(session, character);
+        bool result = await PlayerManager.Instance.Enter(player);
+        if (!result)
+        {
+            Log.Fatal("[PacketHandler] 플레이어매니저 등록 실패. 작업 중단");
+            return;
+        }
+        session.MyPlayer = player;
+
+        if (inventory != null)
+        {
+            //세션의 플레이어 객체에 인벤토리 캐싱
+            player.Inventory.InitInventory(inventory);
+        }
+
+        if(quest != null)
+        {
+            //퀘스트 정보 캐싱
+            player.QuestComponent.LoadDbQuestTable(quest, questProgress);
+        }
+
+        //맵 조회 및 입장
+        Map targetMap = MapManager.Instance.GetMap(player.Map);
+        targetMap.Enter(player);//클라이언트랑 순서 맞춰야 함. 현재 좀 애매해짐 => 해당 유저 빼고 모두 브로드 캐스트. 이대로 진행
+
+        //리스폰스 전송
+        var enterWorldResponseBuff = PacketMaker.Instance.EnterWorldResponse(true, character, inventory, targetMap.GetPlayers(), targetMap.GetDropItems(), targetMap.GetMonsters());
+        session.Send(enterWorldResponseBuff);
+
+        Log.Information($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
+    }
+    /*private async Task HandleEnterWorldRequest(UserSession session, string json)
+    {
+        EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
+
+        //DB에서 캐릭터 정보 조회 => 로그인 때 조회한 정보 활용하는 걸로 바꿀 것(db x)
+        CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
+        if (character == null) return;
+
+        *//*Task<List<InventoryDto>> inventoryTask = DbManager.GetInventoryByOwnerId(character.id);
+        Task<List<QuestDto>> questTask = DbManager.GetQuestByCharacterId(character.id);
+        Task<List<QuestProgressDto>> questProgressTask = DbManager.GetQuestProgressByCharacterId(character.id);
+
+        await Task.WhenAll(inventoryTask, questTask, questProgressTask);
+
+        var inventory = await inventoryTask;
+        var quest = await questTask;
+        var questProgress = await questProgressTask;*//*
+
+
+
         //플레이어 객체 생성 및 플레이어 매니저 등록 + 세션에 플레이어 연결
         Player player = new Player(session, character);
         PlayerManager.Instance.Enter(player);
@@ -137,7 +226,7 @@ public class PacketHandler
         }
 
         Console.WriteLine($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
-    }
+    }*/
 
     private Task HandlePlayerMoveRequest(UserSession session, string json)
     {
@@ -149,8 +238,8 @@ public class PacketHandler
         Map targetMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
         targetMap.UpdatePlayer(req.CharacterId, req.PosX, req.PosY, req.PosZ);
 
-        if (req.State == 3)
-            Console.WriteLine("3333333333333");
+        /*if (req.State == 3)
+            Console.WriteLine("넉백상태");*/
 
         PlayerMoveResponse res = new PlayerMoveResponse
         {
@@ -172,7 +261,8 @@ public class PacketHandler
     {
         UseItemRequest req = JsonSerializer.Deserialize<UseItemRequest>(json);
 
-        session.MyPlayer.Inventory.UseItem(session, req.InventoryId);
+        //session.MyPlayer.Inventory.UseItem(session, req.InventoryId);
+        session.MyPlayer.UseItem(req.InventoryId);
 
         return Task.CompletedTask;
     }
@@ -181,7 +271,8 @@ public class PacketHandler
     {
         DropItemRequest req = JsonSerializer.Deserialize<DropItemRequest>(json);
 
-        session.MyPlayer.Inventory.DropItem(session, req.InventoryId, req.MapId, req.PosX, req.PosY, req.PosZ);
+        //session.MyPlayer.Inventory.DropItem(session, req.InventoryId, req.MapId, req.PosX, req.PosY, req.PosZ);
+        session.MyPlayer.DropItem(req);
 
         return Task.CompletedTask;
     }

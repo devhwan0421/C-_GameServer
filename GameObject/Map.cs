@@ -260,7 +260,8 @@ public class Map
         _dropItems.Remove(inventoryId);
     }
 
-    public async void PickUpItem(UserSession session, int inventoryId)
+    //public async void PickUpItem(UserSession session, int inventoryId)
+    public void PickUpItem(UserSession session, int inventoryId)
     {
         Item pickedItem = null;
 
@@ -276,20 +277,22 @@ public class Map
 
         //아이템 오너 변경
         pickedItem.OwnerId = session.MyPlayer.CharacterId;
-        Console.WriteLine($"pickedItem.OwnerId : {pickedItem.OwnerId}");
+
+        //아이템 소유권 업데이트 -> setdirty에서 하므로 즉시할 필요 x
+        /*int result = await DbManager.ItemOwnerUpdate(inventoryId, pickedItem.OwnerId);
+        if (result <= 0) throw new Exception("DB Update Failed");*/
 
         //본인 인벤토리에 추가
-        session.MyPlayer.Inventory.AddItem(pickedItem);
-        //퀘스트 상태에 반영
-        session.MyPlayer.QuestComponent.OnNotifyEvent(2, pickedItem.ItemId, pickedItem.Count);
+        //session.MyPlayer.Inventory.AddItem(pickedItem);
+        session.MyPlayer.AddItem(pickedItem);
+        //퀘스트 상태에 반영 -> 플렝이어.AddItem함수에서 처리함
+        //session.MyPlayer.QuestComponent.OnNotifyEvent(2, pickedItem.ItemId, pickedItem.Count);
 
-        //아이템 소유권 업데이트
-        int result = await DbManager.ItemOwnerUpdate(inventoryId, pickedItem.OwnerId);
-        if (result <= 0) throw new Exception("DB Update Failed");
+        
 
-        //본인 세션에 결과 전송
-        var pickUpItemResponseBuff = PacketMaker.Instance.PickUpItemResponse(pickedItem, true);
-        session.Send(pickUpItemResponseBuff);
+        //본인 세션에 결과 전송 -> 플레이어.AddItem에서 처리
+        /*var pickUpItemResponseBuff = PacketMaker.Instance.PickUpItemResponse(pickedItem, true);
+        session.Send(pickUpItemResponseBuff);*/
 
         //브로드캐스트
         var dropItemDestroy = PacketMaker.Instance.DropItemDestroy(MapId, inventoryId);

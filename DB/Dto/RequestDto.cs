@@ -36,4 +36,37 @@ public class InventoryDto
     public int count { get; set; }
     public int is_equipped { get; set; }
     public int enhancement { get; set; }
+
+    public InventoryDto(Item item)
+    {
+        owner_id = item.OwnerId;
+        item_id = item.ItemId;
+        count = item.Count;
+        is_equipped = item.IsEquipped ? 1 : 0;
+        enhancement = item.Enhancement;
+    }
+
+    public InventoryDto() { }
+}
+
+public class QuestDto
+{
+    public int quest_id { get; set; }
+    public int character_id { get; set; }
+    public int state { get; set; }
+}
+
+public class QuestProgressDto
+{
+    public int questProgress_id { get; set; }
+    public int character_id { get; set; }
+    public int quest_id { get; set; }
+    public int monster_id { get; set; }
+    public int current_count { get; set; }
+}
+
+public class QuestDtoSet
+{
+    public List<QuestDto> Quests = new List<QuestDto>();
+    public List<QuestProgressDto> QuestProgresses = new List<QuestProgressDto>();
 }

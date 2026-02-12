@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
 using System.Linq;
@@ -170,14 +171,12 @@ public class Monster
 
     private void UpdateChasing(float deltaTime)
     {
-        Console.WriteLine($"MonsterId: {MonsterId}, State: {State}, Target: {_target.Nickname}, TargetCurrentMap: {_target.CurrentMap}, TargetPos: ({_target.PosX}, {_target.PosY})");
+        Log.Debug($"MonsterId: {MonsterId}, State: {State}, Target: {_target.Nickname}, TargetCurrentMap: {_target.CurrentMap}, TargetPos: ({_target.PosX}, {_target.PosY})");
         if (_target == null || _target.CurrentMap != _map || _target.State == 9)
         {
             State = 0;
             return;
         }
-        //Console.WriteLine($"MonsterId: {MonsterId}, State: {State}, Target: {_target.Nickname}, TargetPos: ({_target.PosX}, {_target.PosY})");
-        //8, -4
 
         if (PosX >= MinPosX && PosX <= MaxPosX)
         {
@@ -186,14 +185,12 @@ public class Monster
             if ((PosX + movePos) > MinPosX && (PosX + movePos) < MaxPosX)
                 PosX += movePos;
             IsDirty = true;
-            //Console.WriteLine($"MonsterId: {MonsterId}, Pos: ({PosX}, {PosY}), Range: ({MinPosX},{MaxPosX}) State: {State}, Target: {_target.Nickname}, TargetPos: ({_target.PosX}, {_target.PosY})");
         }
 
         float distX = _target.PosX - PosX;
         float distY = _target.PosY - PosY;
         float dist = (distX * distX) + (distY * distY);
-        //float dist = Math.Abs(_target.PosX - PosX);
-        //if (dist > 8)
+
         if (dist > 64.0f)
         {
             _target = null;

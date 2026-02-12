@@ -36,11 +36,15 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
         sw.Start();
         long lastTick = sw.ElapsedMilliseconds;
 
+        Stopwatch jobTimer = new Stopwatch();
+
         while (true)
         {
             long currentTick = sw.ElapsedMilliseconds;
             float deltaTime = (currentTick - lastTick) / 1000.0f;
             lastTick = currentTick;
+
+            jobTimer.Restart();
 
             while (_jobQueue.TryTake(out Action job))
             {
@@ -52,9 +56,14 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
                 {
                     Console.WriteLine(ex.ToString());
                 }
+
+                if (jobTimer.ElapsedMilliseconds > 8) break;
             }
 
             MapManager.Instance.Update(deltaTime);
+
+            PlayerManager.Instance.Update(deltaTime);
+
             if(_jobQueue.Count == 0)
             {
                 Thread.Sleep(1);

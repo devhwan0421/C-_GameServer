@@ -159,7 +159,7 @@ public class NpcManager
         Console.WriteLine("퀘스트 수락처리");
     }
 
-    private void processQuestComplete(UserSession session, int npcId, int dialogueId, int questId)
+    private async void processQuestComplete(UserSession session, int npcId, int dialogueId, int questId)
     {
         Console.WriteLine($"processQuestComplete {npcId}, {dialogueId}, {questId}");
         int state = session.MyPlayer.QuestComponent.GetQuestState(questId);
@@ -168,7 +168,8 @@ public class NpcManager
 
         Console.WriteLine($"CompleteQuest 호출");
         //성공 실패 받아야 함. 임시
-        session.MyPlayer.QuestComponent.CompleteQuest(questId);
+        bool result = await session.MyPlayer.QuestComponent.CompleteQuest(questId);
+        if (result == false) return;
 
         Console.WriteLine($"완료 다이얼로그 호출");
         DialogueBase dialogue = DataManager.Instance.Npc.GetDialogueData(npcId, dialogueId);

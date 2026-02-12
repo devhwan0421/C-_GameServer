@@ -37,4 +37,10 @@ public class QuestCondition
         CurrentCount += value;
         if (CurrentCount > Data.TargetCount) CurrentCount = Data.TargetCount;
     }
+
+    public void SetCount(int value)
+    {
+        CurrentCount = value;
+        if (CurrentCount > Data.TargetCount) CurrentCount = Data.TargetCount;
+    }
 }

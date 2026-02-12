@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Serilog;
+using Serilog.Context;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -7,9 +9,17 @@ using System.Threading.Tasks;
 
 public class Inventory
 {
-    private readonly UserSession _mySession;
+    private Player _owner;
+    //private readonly UserSession _mySession;
 
-    public Inventory(UserSession mySession) => _mySession = mySession;
+    //public Inventory(UserSession mySession) => _mySession = mySession;
+    public Inventory(Player owner)
+    {
+        _owner = owner;
+    }
+
+    public bool IsDirty { get; private set; }
+    private HashSet<int> _dirtyInventoryIds = new HashSet<int>();
 
     //Dictionary<inventoryId, Dictionary<itemId, Item>> 형식이 더 좋을 듯
     public Dictionary<int, Item> ItemList { get; set; } = new Dictionary<int, Item>();
@@ -27,18 +37,105 @@ public class Inventory
         }).ToDictionary(item => item.InventoryId);
     }
 
+    private void SetDirty(int inventoryId)
+    {
+        IsDirty = true;
+        _dirtyInventoryIds.Add(inventoryId);
+    }
+
+    //수량이 0인 것은 디비 제거로직 추가할 것
+    public List<InventoryDto> GetDirtyInventory()
+    {
+        var dirtyList = new List<InventoryDto>();
+        foreach (var inventoryId in _dirtyInventoryIds)
+        {
+            if(ItemList.TryGetValue(inventoryId, out var item))
+            {
+                dirtyList.Add(new InventoryDto
+                {
+                    id = inventoryId,
+                    owner_id = item.OwnerId,
+                    item_id = item.ItemId,
+                    count = item.Count,
+                    is_equipped = item.IsEquipped ? 1 : 0,
+                    enhancement = item.Enhancement
+                });
+            }
+        }
+        return dirtyList;
+    }
+
+    public void ClearDirty()
+    {
+        IsDirty = false;
+        _dirtyInventoryIds.Clear();
+    }
+
+    public void RestoreDirty(List<InventoryDto> inventoryDtos)
+    {
+        if (inventoryDtos == null) return;
+
+        foreach (var inventoryDto in inventoryDtos)
+        {
+            if (!_dirtyInventoryIds.Contains(inventoryDto.id))
+            {
+                _dirtyInventoryIds.Add(inventoryDto.id);
+            }
+        }
+        IsDirty = true;
+    }
+
     public void AddItem(Item newItem)
     {
-        Console.WriteLine($"인벤토리 목록에 아이템 추가됨 id: {newItem.InventoryId}");
+        //Console.WriteLine($"인벤토리 목록에 아이템 추가됨 id: {newItem.InventoryId}");
         ItemList.Add(newItem.InventoryId, newItem);
+        SetDirty(newItem.InventoryId);
     }
 
-    public void RemoveItem(int inventoryId)
+    /*public void RemoveItem(int inventoryId)
     {
         ItemList.Remove(inventoryId);
-    }
+    }*/
 
-    public async void UseItem(UserSession session, int inventoryId)
+    public int UseItem(int inventoryId)
+    {
+        using (LogContext.PushProperty("Event", "UseItem"))
+        using (LogContext.PushProperty("InventoryId", inventoryId))
+        {
+            Log.Information("[UseItem] 아이템 사용");
+
+            //1. 해당 아이템이 내 인벤토리에 존재하는지 체크
+            if (!ItemList.TryGetValue(inventoryId, out var item) || item.Count <= 0)
+            {
+                Log.Error("[UseItem] 존재하지 않는 아이템 사용");
+                return -1;
+            }
+
+            //2. 아이템 수량 감소
+            item.Count--;
+            Log.Information("[UseItem] 아이템 수량 감소 ItemId: {ItemId}, 남은수량: {count}", item.ItemId, item.Count);
+
+            //3. DB 업데이트 예약
+            SetDirty(inventoryId);
+            Log.Information("[UseItem] InventoryId: {InventoryId} DB 업데이트 예약", inventoryId);
+
+            //4. 아이템 사용효과 적용
+            ItemTemplate itemTemplate = DataManager.Instance.Item.GetItemData(item.ItemId);
+            if (itemTemplate != null && itemTemplate.Type == 0)
+            {
+                _owner.HealHp(itemTemplate.HealAmount);
+                Log.Information("[UseItem] 아이템 사용 효과 적용 ItemId: {ItemId}, ItemType: {ItemType}", itemTemplate.ItemId, itemTemplate.Type);
+            }
+
+            //5. UseItem 요청 유저에게 응답(클라이언트 인벤토리 업데이트)
+            var sendBuff = PacketMaker.Instance.MakeUseItemBuffer(inventoryId, true, itemTemplate.Type, itemTemplate.HealAmount);
+            _owner._mySession.Send(sendBuff);
+            Log.Information("[UseItem] 요청 세션에 응답 전송");
+
+            return item.ItemId;
+        }
+    }
+    /*public async void UseItem(UserSession session, int inventoryId)
     {
         Console.WriteLine($"아이템 사용 요청 들어옴 id: {inventoryId}");
         Item item = null;
@@ -46,11 +143,12 @@ public class Inventory
         {
             var sendBuff = PacketMaker.Instance.MakeUseItemBuffer(inventoryId, false, -1, -1);
             _mySession.Send(sendBuff);
-            Console.WriteLine("아이템이 없거나 수량이 없음");
+            Log.Error($"[Inventory] 존재하지 않는 아이템을 사용했습니다 characterId: {session.MyPlayer.CharacterId}, inventoryId: {inventoryId}");
             return;
         }
 
         item.Count--;
+        //SetDirty(inventoryId);
         if (item.Count == 0) ItemList.Remove(inventoryId);
 
         try
@@ -94,16 +192,82 @@ public class Inventory
             _mySession.Send(sendBuff);
             Console.WriteLine($"UseItem Error: {ex.Message}");
         }
-    }
+    }*/
 
-    public async void DropItem(UserSession session, int inventoryId, int mapId, float posX, float posY, float posZ)
+    public async Task<int> DropItem(DropItemRequest req)
     {
+        Log.Information($"[Inventory] 아이템 드랍 characterId {_owner.CharacterId}, inventoryId {req.InventoryId}, mapId {req.MapId}");
+
+        if (!ItemList.TryGetValue(req.InventoryId, out var originalItem) || originalItem.Count <= 0)
+        {
+            Log.Information($"[Inventory] 존재하지 않는 아이템을 드랍했습니다 characterId {_owner.CharacterId}, inventoryId {req.InventoryId}, mapId {req.MapId}");
+            return -1;
+        }
+
+        //1. 드랍아이템으로 쓸 아이템 복제본 생성
+        Item copyItem = new Item
+        {
+            OwnerId = -1,
+            ItemId = ItemList[req.InventoryId].ItemId,
+            Count = 1,
+            IsEquipped = false,
+            Enhancement = ItemList[req.InventoryId].Enhancement,
+            PosX = req.PosX,
+            PosY = req.PosY,
+            PosZ = req.PosZ
+        };
+
+        //2. 원본 아이템 수량 감소
+        originalItem.Count--;
+
+        try
+        {
+            //3. DB에 드랍 아이템 추가
+            int newInventoryId = await DbManager.InsertItem(new InventoryDto(copyItem));
+            if (newInventoryId <= 0) 
+                throw new Exception("드랍아이템 DB 생성 실패 {_owner.CharacterId}, inventoryId {_owner.Inventory}");
+            
+            Log.Information($"[Inventory] DB에 드랍아이템 추가 완료 inventoryId {newInventoryId}");
+
+            //4. 맵의 드랍아이템 리스트에 아이템 추가
+            Map map = MapManager.Instance.GetMap(req.MapId);
+            copyItem.InventoryId = newInventoryId;
+            map.AddDropItem(copyItem);
+            Log.Information($"[Inventory] 맵에 드랍아이템 추가 완료 inventoryId {copyItem.InventoryId}");
+
+            //5. DB 업데이트 예약
+            SetDirty(req.InventoryId);
+
+            //6. DropItem 요청 유저에게 응답(드랍 아이템 스폰 및 클라이언트 인벤토리 업데이트)
+            ArraySegment<byte> sendBuff = PacketMaker.Instance.MakeDropItemBuffer(copyItem, map.MapId, true, req.InventoryId, req.PosX, req.PosY, req.PosZ);
+            _owner._mySession.Send(sendBuff);
+
+            //7. 본인 제외 해당 맵 전체 유저에게 아이템 스폰 브로드캐스트
+            map.BroadcastSpwanItem(copyItem, _owner.CharacterId);
+
+            return copyItem.ItemId;
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Inventory] {ex.Message}");
+
+            //원본 아이템 수량 롤백
+            originalItem.Count++;
+
+            return -1;
+        }
+    }
+    /*public async void DropItem(UserSession session, int inventoryId, int mapId, float posX, float posY, float posZ)
+    {
+        Log.Information($"[Inventory] 아이템 드랍 characterId {session.MyPlayer.CharacterId}, inventoryId {inventoryId}, mapId {mapId}");
+
         Item originalItem = null;
         Item copyItem = null;
         if (!ItemList.TryGetValue(inventoryId, out originalItem) || originalItem.Count <= 0)
         {
-            var sendBuff = PacketMaker.Instance.MakeDropItemBuffer(null, mapId, false, inventoryId, 0, 0, 0);
-            _mySession.Send(sendBuff);
+            Log.Information($"[Inventory] 존재하지 않는 아이템을 드랍했습니다 characterId {session.MyPlayer.CharacterId}, inventoryId {inventoryId}, mapId {mapId}");
+            *//*var sendBuff = PacketMaker.Instance.MakeDropItemBuffer(null, mapId, false, inventoryId, 0, 0, 0);
+            _owner._mySession.Send(sendBuff);*//*
             return;
         }
 
@@ -152,7 +316,7 @@ public class Inventory
 
             Console.WriteLine("카피아이템 전송 true");
             ArraySegment<byte> sendBuff = PacketMaker.Instance.MakeDropItemBuffer(copyItem, map.MapId, true, inventoryId, posX, posY, posZ);
-            _mySession.Send(sendBuff);
+            _owner._mySession.Send(sendBuff);
 
             map.BroadcastSpwanItem(copyItem, session.MyPlayer.CharacterId);
         }
@@ -164,10 +328,10 @@ public class Inventory
             else
                 ItemList.Add(inventoryId, originalItem);
             var sendBuff = PacketMaker.Instance.MakeDropItemBuffer(null, mapId, false, inventoryId, 0, 0, 0);
-            _mySession.Send(sendBuff);
+            _owner._mySession.Send(sendBuff);
             Console.WriteLine($"DropItem Error: {ex.Message}");
         }
-    }
+    }*/
 
     public int getItemCount(int itemId)
     {

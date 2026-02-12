@@ -18,8 +18,10 @@ class Program
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
-            .WriteTo.Console()
-            .WriteTo.File("logs/lo-.txt", rollingInterval: RollingInterval.Day)
+            .Enrich.FromLogContext()
+            //.WriteTo.Console()
+            //.WriteTo.File("logs/lo-.txt", rollingInterval: RollingInterval.Day)
+            .WriteTo.Seq("http://localhost:5341/")
             .CreateLogger();
         Log.Information("로그 기록 시작");
 
