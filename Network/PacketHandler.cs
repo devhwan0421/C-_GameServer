@@ -137,6 +137,68 @@ public class PacketHandler
     private async Task HandleEnterWorldRequest(UserSession session, string json)
     {
         EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
+        int timeoutMs = 5000; // 5초 타임아웃 설정
+
+        try
+        {
+            // 1. 캐릭터 정보 조회 타임아웃 처리
+            var charTask = DbManager.GetCharacterByCharacterId(req.CharacterId);
+            if (await Task.WhenAny(charTask, Task.Delay(timeoutMs)) != charTask)
+            {
+                throw new TimeoutException("캐릭터 정보 조회 타임아웃");
+            }
+            CharacterDto character = await charTask;
+            if (character == null) return;
+
+            Log.Information($"[character] {req.CharacterId}");
+
+            // 2. 나머지 데이터들 (인벤, 퀘스트 등) 병렬 조회 및 타임아웃 처리
+            Task<List<InventoryDto>> inventoryTask = DbManager.GetInventoryByOwnerId(character.id);
+            Task<List<QuestDto>> questTask = DbManager.GetQuestByCharacterId(character.id);
+            Task<List<QuestProgressDto>> questProgressTask = DbManager.GetQuestProgressByCharacterId(character.id);
+
+            Log.Information($"[questProgressTask] {req.CharacterId}");
+            // 모든 작업이 5초 안에 끝나는지 감시
+            var allTasks = Task.WhenAll(inventoryTask, questTask, questProgressTask);
+            if (await Task.WhenAny(allTasks, Task.Delay(timeoutMs)) != allTasks)
+            {
+                throw new TimeoutException("인벤토리/퀘스트 데이터 로드 타임아웃");
+            }
+            Log.Information($"[WhenAll] {req.CharacterId}");
+            var inventory = await inventoryTask;
+            var quest = await questTask;
+            var questProgress = await questProgressTask;
+
+            // --- 이후 로직 동일 ---
+            Player player = new Player(session, character);
+            bool result = await PlayerManager.Instance.Enter(player);
+            if (!result) return;
+
+            session.MyPlayer = player;
+            if (inventory != null) player.Inventory.InitInventory(inventory);
+            if (quest != null) player.QuestComponent.LoadDbQuestTable(quest, questProgress);
+
+            Map targetMap = MapManager.Instance.GetMap(player.Map);
+            targetMap.Enter(player);
+
+            var enterWorldResponseBuff = PacketMaker.Instance.EnterWorldResponse(true, character, inventory, targetMap.GetPlayers(), targetMap.GetDropItems(), targetMap.GetMonsters());
+            session.Send(enterWorldResponseBuff);
+
+            Log.Information($"[Enter World Success] {player.Nickname}");
+        }
+        catch (TimeoutException ex)
+        {
+            Log.Error($"[Enter World Timeout] {req.CharacterId} : {ex.Message}");
+            // 클라이언트에게 실패 패킷 전송 로직이 있다면 추가
+        }
+        catch (Exception ex)
+        {
+            Log.Error($"[Enter World Error] {ex.Message}");
+        }
+    }
+    /*private async Task HandleEnterWorldRequest(UserSession session, string json)
+    {
+        EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
 
         //DB에서 캐릭터 정보 조회 => 로그인 때 조회한 정보 활용하는 걸로 바꿀 것(db x)
         CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
@@ -183,7 +245,7 @@ public class PacketHandler
         session.Send(enterWorldResponseBuff);
 
         Log.Information($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
-    }
+    }*/
     /*private async Task HandleEnterWorldRequest(UserSession session, string json)
     {
         EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
@@ -235,13 +297,13 @@ public class PacketHandler
 
         //int playerId = session.MyPlayer.CharacterId;
 
-        Map targetMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
-        targetMap.UpdatePlayer(req.CharacterId, req.PosX, req.PosY, req.PosZ);
+        //Map targetMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
+        //targetMap.UpdatePlayer(req.CharacterId, req.PosX, req.PosY, req.PosZ);
 
         /*if (req.State == 3)
             Console.WriteLine("넉백상태");*/
 
-        PlayerMoveResponse res = new PlayerMoveResponse
+        /*PlayerMoveResponse res = new PlayerMoveResponse
         {
             CharacterId = req.CharacterId,
             PosX = req.PosX,
@@ -249,10 +311,12 @@ public class PacketHandler
             PosZ = req.PosZ,
             Dir = req.Dir,
             State = req.State
-        };
+        };*/
+        //session.MyPlayer.Move(req);
+        session.MyPlayer.UpdatePlayerPos(req);
 
         //Console.WriteLine("브로드캐스트");
-        targetMap.Broadcast(res, session.MyPlayer.CharacterId);
+        //targetMap.Broadcast(res, session.MyPlayer.CharacterId);
 
         return Task.CompletedTask;
     }

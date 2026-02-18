@@ -12,16 +12,14 @@ class Program
     {
         int processorCount = Environment.ProcessorCount;
         ThreadPool.SetMinThreads(processorCount, processorCount);
-        ThreadPool.SetMaxThreads(processorCount * 2, processorCount * 2); //소켓 IO 스레드는 Task로 처리하고 있음. 최대 cpu 코어 * 2
-                                                                          //게임 로직 스레드는 Thread 한개
-                                                                          //DB 워커 스레드는 Thread 4개
+        ThreadPool.SetMaxThreads(processorCount, processorCount);
 
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .Enrich.FromLogContext()
-            //.WriteTo.Console()
+            .WriteTo.Console()
             //.WriteTo.File("logs/lo-.txt", rollingInterval: RollingInterval.Day)
-            .WriteTo.Seq("http://localhost:5341/")
+            //.WriteTo.Seq("http://localhost:5341/")
             .CreateLogger();
         Log.Information("로그 기록 시작");
 
@@ -34,11 +32,12 @@ class Program
         MapManager.Instance.Init();
         //gameLogicThread.Enqueue(() => WorldManager.Instance.Update());
 
-        DbTransactionWorker.Instance.Start(4, gameLogicThread);
+        DbTransactionWorker.Instance.Start(64, gameLogicThread);
 
         Socket listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         listenSocket.Bind(new IPEndPoint(IPAddress.Any, 7777));
-        listenSocket.Listen(10); //listen: 최대 10개의 대기 큐
+        //listenSocket.Bind(new IPEndPoint(IPAddress.Parse("192.168.50.221"), 7777));
+        listenSocket.Listen(1000); //listen: 최대 10개의 대기 큐
 
         Console.WriteLine("실버바인 엔진 서버 시작됨 ( 서버 대기 중...)");
 

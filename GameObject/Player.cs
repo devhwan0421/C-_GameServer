@@ -10,6 +10,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static System.Collections.Specialized.BitVector32;
+using Google.Protobuf;
+using Protocol;
 
 public class Player
 {
@@ -19,7 +21,7 @@ public class Player
 
     //DB
     //public bool IsDirty = false; //플레이어 데이터에 변화가 있었는 지 체크
-    public bool PlayerInfoIsDirty = false;
+    public bool PlayerInfoIsDirty = true;
     private float _saveInterval = 0;
     private float _saveTimer = 0;
 
@@ -69,7 +71,8 @@ public class Player
         List<InventoryDto> inventoryDtos = null;
         QuestDtoSet questDto = null;
 
-        PlayerInfoIsDirty = true; //임시 활성화
+        //PlayerInfoIsDirty = true; //임시 활성화
+        //이제 이동시 플래그 활성화 됨
 
         if (PlayerInfoIsDirty)
         {
@@ -183,6 +186,8 @@ public class Player
     public float PosX { get; set; }
     public float PosY { get; set; }
     public float PosZ { get; set; }
+
+    public int Dir { get; set; } //최근 추가함. 02-15
 
     public int Hp { get; set; }
     public int MaxHp { get; set; }
@@ -338,5 +343,15 @@ public class Player
             //퀘스트 진행현황에 반영
             QuestComponent.OnNotifyEvent(2, itemId, -1);
         }
+    }
+
+    public void UpdatePlayerPos(PlayerMoveRequest req)
+    {
+        PosX = req.PosX;
+        PosY = req.PosY;
+        PosZ = req.PosZ;
+        Dir = req.Dir;
+        State = req.State;
+        PlayerInfoIsDirty = true;
     }
 }

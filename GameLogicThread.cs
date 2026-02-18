@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,17 +9,12 @@ using System.Threading;
 using System.Threading.Tasks;
 
 public class GameLogicThread : SynchronizationContext //https://blog.naver.com/vactorman/220371851151
-                                                     //https://blog.naver.com/vactorman/220340600110 차근차근 더 자세히 읽어볼 것
+                                                      //https://blog.naver.com/vactorman/220340600110 차근차근 더 자세히 읽어볼 것
 {
     public static GameLogicThread Instance { get; } = new GameLogicThread();
 
     private readonly BlockingCollection<Action> _jobQueue = new BlockingCollection<Action>();
     public Thread LogicThread { get; private set; }
-
-    /*public GameLogicThread()
-    {
-        LogicThread = new Thread(RunLoop) { Name = "LogicThread" };
-    }*/
 
     public void Start()
     {
@@ -26,65 +22,85 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
         LogicThread.Start();
     }
 
+    private long frameCount = 0;
+    private long totalProcessTime = 0;
+    private long lastReportTime = 0;
+
+    private void UpdateStatistics(long startTickTime, long endTickTime)
+    {
+        long processTime = endTickTime - startTickTime;
+
+        frameCount++;
+        totalProcessTime += processTime;
+
+        if (endTickTime - lastReportTime > 1000)
+        {
+            double avgProcessTime = (double)totalProcessTime / frameCount;
+
+            Console.WriteLine($"[Logic] Avg: {avgProcessTime:F2}ms, FPS: {frameCount}, PendingJobs: {_jobQueue.Count}");
+
+            frameCount = 0;
+            totalProcessTime = 0;
+            lastReportTime = endTickTime;
+        }
+    }
+
     private void RunLoop()
     {
-        SynchronizationContext.SetSynchronizationContext(this); //스레드에 SynchronizationContext 할당.
-                                                                //이 스레드에서 실행되는 모든 비동기 작업은 이 컨텍스트를 사용
-        Console.WriteLine($"[System] 로직 스레드 시작 (ID: {Thread.CurrentThread.ManagedThreadId})");
+        SynchronizationContext.SetSynchronizationContext(this);
+        Stopwatch sw = Stopwatch.StartNew();
 
-        Stopwatch sw = new Stopwatch();
-        sw.Start();
-        long lastTick = sw.ElapsedMilliseconds;
+        int TICK_RATE = 30;
+        long MS_PER_TICK = 1000 / TICK_RATE;
+        long JOB_BUDGET_MS = 10;
 
-        Stopwatch jobTimer = new Stopwatch();
+        double nextTickTime = sw.Elapsed.TotalMilliseconds;
+        //long lastTickTimeFrame = (long)nextFrameTargetMs;
 
         while (true)
         {
-            long currentTick = sw.ElapsedMilliseconds;
-            float deltaTime = (currentTick - lastTick) / 1000.0f;
-            lastTick = currentTick;
+            double currentTime = sw.Elapsed.TotalMilliseconds;
 
-            jobTimer.Restart();
-
-            while (_jobQueue.TryTake(out Action job))
+            if (currentTime >= nextTickTime)
             {
-                try
+                float deltaTime = (float)(MS_PER_TICK / 1000.0);
+
+                Stopwatch jobTimer = Stopwatch.StartNew();
+                while (_jobQueue.TryTake(out Action job))
                 {
-                    job.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.ToString());
+                    try { job.Invoke(); }
+                    catch (Exception ex) { Console.WriteLine(ex); }
+
+                    if (jobTimer.ElapsedMilliseconds > JOB_BUDGET_MS) break;
                 }
 
-                if (jobTimer.ElapsedMilliseconds > 8) break;
+                MapManager.Instance.Update(deltaTime);
+                PlayerManager.Instance.Update(deltaTime);
+
+                UpdateStatistics((long)currentTime, (long)sw.Elapsed.TotalMilliseconds);
+
+                nextTickTime += MS_PER_TICK;
+
+                if (sw.ElapsedMilliseconds > nextTickTime + MS_PER_TICK)
+                {
+                    Log.Warning("[GameLogicThread] 서버 렉 발생으로 프레임 스킵됨");
+                    nextTickTime = sw.ElapsedMilliseconds;
+                }
             }
-
-            MapManager.Instance.Update(deltaTime);
-
-            PlayerManager.Instance.Update(deltaTime);
-
-            if(_jobQueue.Count == 0)
+            else
             {
-                Thread.Sleep(1);
+                double remainingTime = nextTickTime - currentTime;
+                if (remainingTime > 2.0) 
+                    Thread.Sleep(1);
+                else 
+                    Thread.Yield();
             }
         }
     }
-    /*private void RunLoop()
-    {
-        SynchronizationContext.SetSynchronizationContext(this); //스레드에 SynchronizationContext 할당.
-                                                                //이 스레드에서 실행되는 모든 비동기 작업은 이 컨텍스트를 사용
-        Console.WriteLine($"[System] 로직 스레드 시작 (ID: {Thread.CurrentThread.ManagedThreadId})");
-        
-        foreach (var job in _jobQueue.GetConsumingEnumerable()) //데이터가 들어올 때까지 스레드를 일시 정지
-        {
-            job.Invoke();
-        }
-    }*/
 
     public override void Post(SendOrPostCallback d, object state)
     {
-        _jobQueue.Add(() => d(state)); 
+        _jobQueue.Add(() => d(state));
     }
 
     public void Enqueue(Action action) => _jobQueue.Add(action);

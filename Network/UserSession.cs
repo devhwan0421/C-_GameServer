@@ -26,6 +26,8 @@ public class UserSession
     private Queue<ArraySegment<byte>> _sendQueue = new Queue<ArraySegment<byte>>(); //보내기 대기 중인 패킷들을 저장하는 큐
     private List<ArraySegment<byte>> _pendingList = new List<ArraySegment<byte>>(); //보내기 대기 중인 패킷들을 모아두는 리스트
 
+    private bool _isPendingSend = false;
+
     private const int MAX_SEND_SIZE = 65536;
     private ArraySegment<byte> _reservePacket;
 
@@ -119,6 +121,7 @@ public class UserSession
                 //바디 추출
                 string json = Encoding.UTF8.GetString(data.Array, data.Offset + 4, size - 4);
 
+                ThroughputMonitor.IncReceived();
                 _gameLogicThread.Enqueue(async () =>
                 {
                     //_handler.OnRecvPacket(this, (PacketID)id, json);
@@ -134,7 +137,7 @@ public class UserSession
         }
         else
         {
-            Console.WriteLine("ProcessReceive에서 종료");
+            Console.WriteLine($"ProcessReceive에서 종료 {MyPlayer.Nickname}({MyPlayer.UserId})");
             _= DisConnect();
         }
     }
@@ -187,7 +190,30 @@ public class UserSession
             }
         }
     }
+
     public void Send(ArraySegment<byte> sendBuff)
+    {
+        if (_isDisconnected == 1) return;
+
+        bool pushSend = false;
+
+        lock (_lock)
+        {
+            _sendQueue.Enqueue(sendBuff);
+
+            if (_isPendingSend == false)
+            {
+                _isPendingSend = true;
+                pushSend = true;
+            }
+        }
+
+        if (pushSend)
+        {
+            Task.Run(() => RegisterSend());
+        }
+    }
+    /*public void Send(ArraySegment<byte> sendBuff)
     {
         lock (_lock)
         {
@@ -200,9 +226,69 @@ public class UserSession
                 RegisterSend();
             }
         }
-    }
+    }*/
 
     private void RegisterSend()
+    {
+        lock (_lock)
+        {
+            _pendingList.Clear();
+            int totalPacketSize = 0;
+
+            while (totalPacketSize < MAX_SEND_SIZE)
+            {
+                ArraySegment<byte> packet;
+
+                if (_reservePacket.Count > 0)
+                {
+                    packet = _reservePacket;
+                    _reservePacket = default;
+                }
+                else if (_sendQueue.Count > 0) packet = _sendQueue.Dequeue();
+                else break;
+
+                int packetSize = packet.Count;
+                int availableSize = MAX_SEND_SIZE - totalPacketSize;
+
+                if (packetSize > availableSize)
+                {
+                    _pendingList.Add(new ArraySegment<byte>(packet.Array, packet.Offset, availableSize));
+                    _reservePacket = new ArraySegment<byte>(packet.Array, packet.Offset + availableSize, packetSize - availableSize);
+                    totalPacketSize += availableSize;
+                    break;
+                }
+                else
+                {
+                    _pendingList.Add(packet);
+                    totalPacketSize += packetSize;
+                }
+            }
+
+            if(_pendingList.Count == 0)
+            {
+                _isPendingSend = false;
+                _sendArgs.BufferList = null;
+                return;
+            }
+
+            _sendArgs.BufferList = _pendingList;
+        }
+
+        try
+        {
+            bool pending = _socket.SendAsync(_sendArgs);
+            if (!pending)
+            {
+                ProcessSend(_sendArgs);
+            }
+        }
+        catch (Exception ex)
+        {
+            lock (_lock) { _isPendingSend = false; }
+            _ = DisConnect();
+        }
+    }
+    /*private void RegisterSend()
     {
         int totalPacketSize = 0;
 
@@ -245,7 +331,7 @@ public class UserSession
         {
             ProcessSend(_sendArgs);
         }
-    }
+    }*/
     /*private void RegisterSend()
     {
         int currentTotalSize = 0;
@@ -282,6 +368,17 @@ public class UserSession
     }*/
 
     private void ProcessSend(SocketAsyncEventArgs args)
+    {
+        if (args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
+        {
+            RegisterSend();
+        }
+        else
+        {
+            _ = DisConnect();
+        }
+    }
+    /*private void ProcessSend(SocketAsyncEventArgs args)
     { 
         lock (_lock)
         {
@@ -301,7 +398,7 @@ public class UserSession
                 _= DisConnect();
             }
         }
-    }
+    }*/
 
     public async Task<bool> DisConnect()
     {

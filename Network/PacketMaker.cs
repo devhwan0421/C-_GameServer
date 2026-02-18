@@ -330,4 +330,19 @@ public class PacketMaker
         string json = JsonSerializer.Serialize(packet);
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
+
+    public ArraySegment<byte> PlayerMove(int characterId, float posX, float posY, float posZ, int dir, int state)
+    {
+        PlayerMoveResponse packet = new PlayerMoveResponse
+        {
+            CharacterId = characterId,
+            PosX = posX,
+            PosY = posY,
+            PosZ = posZ,
+            Dir = dir,
+            State = state
+        };
+        string json = JsonSerializer.Serialize(packet);
+        return PacketSerializer.Serialize((ushort)packet.PacketId, json);
+    }
 }

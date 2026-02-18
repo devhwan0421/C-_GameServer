@@ -78,6 +78,7 @@ public class Map
         {
             _packetSendTimer = 0;
             BroadcastMonsterUpdates();
+            BroadcastPlayerPosUpdates();
         }
     }
 
@@ -129,15 +130,16 @@ public class Map
         return players;
     }
 
-    public void UpdatePlayer(int characterId, float posX, float posY, float posZ)
+    /*public void UpdatePlayer(int characterId, float posX, float posY, float posZ)
     {
         if (_players.TryGetValue(characterId, out Player player))
         {
             player.PosX = posX;
             player.PosY = posY;
             player.PosZ = posZ;
+            player.PlayerInfoIsDirty = true;
         }
-    }
+    }*/
 
     public void AddPlayer(Player player)
     {
@@ -317,6 +319,7 @@ public class Map
             if (player.CharacterId == exceptPlayerId)
                 continue;
             player.Send(packet); //다름. 이후에 통합해야됨
+            //무브패킷은 이제 이거 안 사용
         }
     }
 
@@ -491,6 +494,23 @@ public class Map
                 }
 
                 monster.IsDirty = false;
+            }
+        }
+    }
+
+    private void BroadcastPlayerPosUpdates()
+    {
+        foreach (var player in _players.Values)
+        {
+            //이동 PlayerInfoIsDirty 혼용 수정(이건 db업데이트용임)
+            if (player.PlayerInfoIsDirty)
+            {
+                //나중에 플레이어 인포로 묶을 것
+                //var moveBuff = PacketMaker.Instance.PlayerMove(player.info);
+                var moveBuff = PacketMaker.Instance.PlayerMove(
+                    player.CharacterId, player.PosX, player.PosY, player.PosZ, player.Dir, player.State);
+
+                BroadcastArraySegment(moveBuff, player.CharacterId);
             }
         }
     }
