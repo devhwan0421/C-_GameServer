@@ -345,4 +345,24 @@ public class PacketMaker
         string json = JsonSerializer.Serialize(packet);
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
+
+    public ArraySegment<byte> PlayerMoveList(List<PlayerInfo> movedPlayers)
+    {
+        PlayerMoveListResponse packet = new PlayerMoveListResponse();
+
+        foreach (var player in movedPlayers)
+        {
+            packet.Players.Add(new PlayerMoveResponse
+            {
+                CharacterId = player.CharacterId,
+                PosX = player.PosX,
+                PosY = player.PosY,
+                PosZ = player.PosZ,
+                Dir = player.Dir,
+                State = player.State
+            });
+        }
+        string json = JsonSerializer.Serialize(packet);
+        return PacketSerializer.Serialize((ushort)packet.PacketId, json);
+    }
 }

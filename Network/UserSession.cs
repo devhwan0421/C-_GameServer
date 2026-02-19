@@ -28,7 +28,7 @@ public class UserSession
 
     private bool _isPendingSend = false;
 
-    private const int MAX_SEND_SIZE = 65536;
+    private const int MAX_SEND_SIZE = 128 * 1024;
     private ArraySegment<byte> _reservePacket;
 
     private object _lock = new object();
@@ -51,8 +51,8 @@ public class UserSession
         _handler = handler;
         this.SessionId = sessionId;
 
-        byte[] rented = ArrayPool<byte>.Shared.Rent(65536);
-        _recvBuffer = new RecvBuffer(new ArraySegment<byte>(rented, 0, 65536));
+        byte[] rented = ArrayPool<byte>.Shared.Rent(MAX_SEND_SIZE);
+        _recvBuffer = new RecvBuffer(new ArraySegment<byte>(rented, 0, MAX_SEND_SIZE));
 
         _recvArgs = new SocketAsyncEventArgs();
         _sendArgs = new SocketAsyncEventArgs();
@@ -121,7 +121,6 @@ public class UserSession
                 //바디 추출
                 string json = Encoding.UTF8.GetString(data.Array, data.Offset + 4, size - 4);
 
-                ThroughputMonitor.IncReceived();
                 _gameLogicThread.Enqueue(async () =>
                 {
                     //_handler.OnRecvPacket(this, (PacketID)id, json);

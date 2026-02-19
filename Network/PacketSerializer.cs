@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 public static class PacketSerializer
 {
     //스레드별 개별 작업대 (Lock 최소화)
-    public static ThreadLocal<byte[]> SendBuffer = new ThreadLocal<byte[]>(() => new byte[65536]);
+    public static ThreadLocal<byte[]> SendBuffer = new ThreadLocal<byte[]>(() => new byte[128 * 1024]);
 
     public static ArraySegment<byte> Serialize(ushort id, string json)
     {
@@ -23,7 +23,7 @@ public static class PacketSerializer
         byte[] packetData = new byte[totalSize];
         Buffer.BlockCopy(buffer, 0, packetData, 0, totalSize);
         
-        if(id != 12 && id != 28)
+        if(id != 12 && id != 28 && id != 46)
             Console.WriteLine($"[Debug] Serialized Packet: ID={id}, Size={totalSize}, JSON={json}"); // 로그 추가
 
         return new ArraySegment<byte>(packetData);

@@ -500,6 +500,30 @@ public class Map
 
     private void BroadcastPlayerPosUpdates()
     {
+        List<PlayerInfo> movedPlayers = new List<PlayerInfo>();
+
+        foreach (var player in _players.Values)
+        {
+            //이동 PlayerInfoIsDirty 혼용 수정(이건 db업데이트용임)
+            if (player.PlayerInfoIsDirty)
+            {
+                movedPlayers.Add(new PlayerInfo
+                {
+                    CharacterId = player.CharacterId,
+                    PosX = player.PosX,
+                    PosY = player.PosY,
+                    PosZ = player.PosZ,
+                    Dir = player.Dir,
+                    State = player.State
+                });
+            }
+        }
+
+        var moveBuff = PacketMaker.Instance.PlayerMoveList(movedPlayers);
+        BroadcastArraySegment(moveBuff);
+    }
+    /*private void BroadcastPlayerPosUpdates()
+    {
         foreach (var player in _players.Values)
         {
             //이동 PlayerInfoIsDirty 혼용 수정(이건 db업데이트용임)
@@ -513,5 +537,5 @@ public class Map
                 BroadcastArraySegment(moveBuff, player.CharacterId);
             }
         }
-    }
+    }*/
 }
