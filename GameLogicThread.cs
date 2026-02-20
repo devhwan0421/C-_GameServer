@@ -1,12 +1,8 @@
 ﻿using Serilog;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 public class GameLogicThread : SynchronizationContext //https://blog.naver.com/vactorman/220371851151
                                                       //https://blog.naver.com/vactorman/220340600110 차근차근 더 자세히 읽어볼 것
@@ -90,9 +86,9 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
             else
             {
                 double remainingTime = nextTickTime - currentTime;
-                if (remainingTime > 2.0) 
+                if (remainingTime > 2.0)
                     Thread.Sleep(1);
-                else 
+                else
                     Thread.Yield();
             }
         }

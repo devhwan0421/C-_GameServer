@@ -2,15 +2,7 @@
 using Serilog.Context;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
-using static System.Net.Mime.MediaTypeNames;
 
 public class MonsterPatrolInfo
 {
@@ -24,10 +16,10 @@ public class MonsterPatrolInfo
 public class Map
 {
     public int MapId { get; set; }
-    private List<MonsterPatrolInfo> _monsterPatrolInfo {  get; set; } = new List<MonsterPatrolInfo>();
+    private List<MonsterPatrolInfo> _monsterPatrolInfo { get; set; } = new List<MonsterPatrolInfo>();
 
     private Dictionary<int, Player> _players = new Dictionary<int, Player>();
-    private Dictionary<int, Item> _dropItems = new Dictionary<int, Item>(); 
+    private Dictionary<int, Item> _dropItems = new Dictionary<int, Item>();
     private Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
 
     private float _packetSendTimer = 0;
@@ -210,7 +202,7 @@ public class Map
         }
 
         //기존 맵 퇴장
-        if(player.CurrentMap == null)
+        if (player.CurrentMap == null)
         {
             Console.WriteLine("플레이어의 현재맵이 null");
         }
@@ -221,7 +213,7 @@ public class Map
         if (newMap == null) //클라이언트 작업자의 실수 방지 (포탈 정보 오기입)
         {
             Console.WriteLine("해당 맵이 존재하지 않습니다.");
-            return; 
+            return;
         }
 
         //새 맵 입장
@@ -290,7 +282,7 @@ public class Map
         //퀘스트 상태에 반영 -> 플렝이어.AddItem함수에서 처리함
         //session.MyPlayer.QuestComponent.OnNotifyEvent(2, pickedItem.ItemId, pickedItem.Count);
 
-        
+
 
         //본인 세션에 결과 전송 -> 플레이어.AddItem에서 처리
         /*var pickUpItemResponseBuff = PacketMaker.Instance.PickUpItemResponse(pickedItem, true);
@@ -351,7 +343,7 @@ public class Map
     public void SpawnMonster()
     {
         int spawnId = 1;
-        foreach(var moveData in _monsterPatrolInfo)
+        foreach (var moveData in _monsterPatrolInfo)
         {
             MonsterTemplate monsterData = DataManager.Instance.Monster.GetMonsterData(moveData.MonsterId);
 
@@ -380,10 +372,10 @@ public class Map
 
     public void TakeDamage(int characterId, int damage)
     {
-        if(_players.TryGetValue(characterId, out var player))
+        if (_players.TryGetValue(characterId, out var player))
         {
             player.Hp -= damage;
-            if(player.Hp <= 0)
+            if (player.Hp <= 0)
             {
                 player.Hp = 0;
                 player.State = 9; //9: 죽음
@@ -401,9 +393,9 @@ public class Map
 
     public async void PlayerHitMonster(UserSession session, int characterId, int spawnId, int attackType, int damage, int knockbackDir)
     {
-        if(_players.TryGetValue(characterId, out var player))
+        if (_players.TryGetValue(characterId, out var player))
         {
-            if(_monsters.TryGetValue(spawnId, out var monster))
+            if (_monsters.TryGetValue(spawnId, out var monster))
             {
                 int finalDamage = player.Damage; //방어력 없다고 가정
                 monster.Hp -= finalDamage;
@@ -476,7 +468,7 @@ public class Map
             IsEquipped = itemTemplate.Type == 1 ? true : false,
             Enhancement = 0
         };
-        
+
         return item;
     }
 

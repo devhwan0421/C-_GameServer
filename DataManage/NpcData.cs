@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 public class NpcData
 {
@@ -33,7 +31,8 @@ public class NpcData
                     DefaultDialogueId = root.GetProperty("DefaultDialogueId").GetInt32()
                 };
 
-                if(root.TryGetProperty("Dialogues", out JsonElement dialoguesElement)){
+                if (root.TryGetProperty("Dialogues", out JsonElement dialoguesElement))
+                {
                     foreach (var property in dialoguesElement.EnumerateObject())
                     {
                         int dialogueId = int.Parse(property.Name);
@@ -65,7 +64,7 @@ public class NpcData
                     }
                 }
 
-                if(root.TryGetProperty("QuestMap", out JsonElement questMapElement))
+                if (root.TryGetProperty("QuestMap", out JsonElement questMapElement))
                 {
                     npcTemplate.QuestMap = JsonSerializer.Deserialize<Dictionary<int, QuestDialogueMap>>(questMapElement.GetRawText());
                 }

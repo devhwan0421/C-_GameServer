@@ -1,17 +1,8 @@
-﻿using Dapper;
-using MySqlConnector;
-using Serilog;
-using Serilog.Context;
+﻿using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Unicode;
-using System.Threading;
 using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
 
 public class PacketHandler
 {
@@ -74,7 +65,7 @@ public class PacketHandler
         if (loginDto == null)
         {
             var resFailed = new LoginResponse { Username = req.Username, Success = false, Message = "로그인 실패" };
-            session.Send(resFailed);    
+            session.Send(resFailed);
             Console.WriteLine("DB에 일치하는 계정이 없습니다.");
             return;
         }

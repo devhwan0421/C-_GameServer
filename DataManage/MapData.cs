@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 public class MapData
 {
@@ -26,7 +24,7 @@ public class MapData
 
                 MapTemplate mapTemplate = JsonSerializer.Deserialize<MapTemplate>(jsonString);
 
-                if(mapTemplate != null)
+                if (mapTemplate != null)
                 {
                     Map map = new Map(mapTemplate);
                     _mapDatas.Add(map.MapId, map);

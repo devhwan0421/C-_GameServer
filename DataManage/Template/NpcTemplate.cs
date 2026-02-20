@@ -44,7 +44,7 @@ public class QuestDialogueMap
     public string QuestTitle { get; set; }
     public int StartId { get; set; }
     public int ProgressId { get; set; }
-    public int CompletableId {  get; set; }
+    public int CompletableId { get; set; }
     //public int CompleteId { get; set; }
 }
 

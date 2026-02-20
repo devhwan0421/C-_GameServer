@@ -3,7 +3,6 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -67,7 +66,7 @@ public class UserSession
     {
         if (_isDisconnected == 1) return;
 
-        if (_recvBuffer.FreeSize < _recvBuffer.UnderlyingArray.Length /4)
+        if (_recvBuffer.FreeSize < _recvBuffer.UnderlyingArray.Length / 4)
             _recvBuffer.Clean();
 
         ArraySegment<byte> writeSegment = _recvBuffer.WriteSegment;
@@ -137,7 +136,7 @@ public class UserSession
         else
         {
             Console.WriteLine($"ProcessReceive에서 종료 {MyPlayer.Nickname}({MyPlayer.UserId})");
-            _= DisConnect();
+            _ = DisConnect();
         }
     }
 
@@ -179,7 +178,7 @@ public class UserSession
         ArraySegment<byte> sendBuff = PacketSerializer.Serialize(packetId, json);
         lock (_lock)
         {
-            if(_isDisconnected == 1) return;
+            if (_isDisconnected == 1) return;
 
             _sendQueue.Enqueue(sendBuff);
             //Console.WriteLine($"[Debug] Send Queued: ID={packetId}, QueueCount={_sendQueue.Count}"); // 로그 추가
@@ -263,7 +262,7 @@ public class UserSession
                 }
             }
 
-            if(_pendingList.Count == 0)
+            if (_pendingList.Count == 0)
             {
                 _isPendingSend = false;
                 _sendArgs.BufferList = null;

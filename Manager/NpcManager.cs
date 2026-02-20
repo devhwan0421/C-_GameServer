@@ -31,7 +31,7 @@ public class NpcManager
 
         //dialogueId 0일 경우 첫 대화 -> 퀘스트 체크
         //dialogueId 0이 아닐 경우 해당 dialogue 전송
-        if(dialogueId == 0)
+        if (dialogueId == 0)
         {
             //2. npc 데이터의 퀘스트 목록에서 완료상태가 아닌 퀘스트 찾기
             //찾아서 해당 데이터만 보내주는게 낫나 아니면 다 보내고 클라이언트에서 처리하는게 낫나
@@ -147,7 +147,8 @@ public class NpcManager
             case 4: //selection
                 dialogueBuff = PacketMaker.Instance.DialogueSelection((DialogueSelection)dialogue);
                 break;
-        };
+        }
+        ;
 
         session.Send(dialogueBuff);
     }

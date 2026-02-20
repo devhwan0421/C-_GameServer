@@ -14,7 +14,7 @@ public class QuestTemplate
 {
     public int QuestId { get; set; }
     public string QuestName { get; set; }
-    public string Description {  get; set; }
+    public string Description { get; set; }
 
     public int RequiredLevel { get; set; } //퀘스트 레벨제한
     public int RequiredQuestId { get; set; } //선행 퀘스트 (0이면 없음)

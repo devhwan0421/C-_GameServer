@@ -1,9 +1,8 @@
-﻿using System;
+﻿using Serilog;
+using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Collections.Generic;
 using System.Threading;
-using Serilog;
 
 class Program
 {

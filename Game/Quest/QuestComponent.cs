@@ -1,8 +1,5 @@
 ﻿using Serilog;
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 
 public class QuestComponent
@@ -124,7 +121,7 @@ public class QuestComponent
         }
 
         var questTemplate = DataManager.Instance.Quest.GetQuestTemplate(questId);
-        if(questTemplate != null && _owner.Level >= questTemplate.RequiredLevel && _completedQuests.Contains(questTemplate.RequiredQuestId))
+        if (questTemplate != null && _owner.Level >= questTemplate.RequiredLevel && _completedQuests.Contains(questTemplate.RequiredQuestId))
         {
             return 0;
         }
@@ -221,7 +218,7 @@ public class QuestComponent
         if (questProgress.State != 2) return false;
 
         //아직 업데이트되지 않았다면 업데이트 목록에서 제거
-        if(_dirtyQuestIds.Contains(questId)) _dirtyQuestIds.Remove(questId);
+        if (_dirtyQuestIds.Contains(questId)) _dirtyQuestIds.Remove(questId);
 
         //업데이트용 Dto 생성
         QuestDtoSet questDto = GetQuestDtoByQuestId(questId);
@@ -243,7 +240,7 @@ public class QuestComponent
             return false;
         }
 
-        
+
 
         //보상지급
         _owner.AddExp(questProgress.Template.RewardExp);
@@ -295,7 +292,7 @@ public class QuestComponent
                 List<QuestProgressDto> questProgressDtos = null;
                 if (!questProgressMap.TryGetValue(quest.quest_id, out questProgressDtos))
                 {
-                    questProgressDtos= new List<QuestProgressDto>();
+                    questProgressDtos = new List<QuestProgressDto>();
                 }
 
                 RestoreQuestProgress(quest, questProgressDtos);

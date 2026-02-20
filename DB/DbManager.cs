@@ -1,16 +1,14 @@
-﻿using System;
-using Dapper;
-using MySqlConnector;
-using System.Data;
+﻿using Dapper;
+using Serilog;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Serilog;
 
 public class DbManager
 {
-    //설정 파일 불러오는 것으로 빼기. git 업로드시 public에서 다 보임
-    public static string _connectionString { get; } = "***REMOVED***";
+    public static string _connectionString { get; } = File.ReadAllText("db.config");
 
     //리스트 조회
     public static Task<List<T>> Find<T>(string sql, object param)
@@ -35,7 +33,7 @@ public class DbManager
             db.Execute(sql, param)
         );
     }
-    
+
     private static Task<T> ExecuteScalar<T>(string sql, object param)
     {
         return DbTransactionWorker.Instance.PushQuery(db =>
@@ -148,7 +146,7 @@ public class DbManager
     public static Task<bool> CompleteQuest(QuestDtoSet questDtoSet)
     {
         var quest = questDtoSet.Quests.FirstOrDefault();
-        if(quest == null) return Task.FromResult(false);
+        if (quest == null) return Task.FromResult(false);
 
         return DbTransactionWorker.Instance.PushQuery(db =>
         {

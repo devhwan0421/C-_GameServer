@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class RecvBuffer
 {
@@ -21,7 +17,7 @@ public class RecvBuffer
 
     //데이터의 시작 위치(읽기용)
     //매개변수 설명: (배열, 오프셋, 길이). _array는 버퍼 배열, _buffer.Offset + _readPos는 읽기 시작 위치, DataSize는 읽을 데이터 크기
-    public ArraySegment<byte> ReadSegment => new ArraySegment<byte>(_buffer.Array, _buffer.Offset + _readPos, DataSize); 
+    public ArraySegment<byte> ReadSegment => new ArraySegment<byte>(_buffer.Array, _buffer.Offset + _readPos, DataSize);
     public ArraySegment<byte> WriteSegment => new ArraySegment<byte>(_buffer.Array, _buffer.Offset + _writePos, FreeSize);
 
     //성공적으로 처리했을 때 커서 이동
@@ -35,7 +31,7 @@ public class RecvBuffer
     //데이터 수신 후 커서 이동
     public bool OnWrite(int numOfBytes)
     {
-        if(numOfBytes > FreeSize) return false;
+        if (numOfBytes > FreeSize) return false;
         _writePos += numOfBytes;
         return true;
     }
@@ -44,7 +40,7 @@ public class RecvBuffer
     public void Clean()
     {
         int dataSize = DataSize;
-        if(dataSize == 0)
+        if (dataSize == 0)
         {
             _readPos = _writePos = 0;
         }

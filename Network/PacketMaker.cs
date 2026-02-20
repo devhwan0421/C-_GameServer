@@ -1,12 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 public class PacketMaker
 {
@@ -25,7 +20,7 @@ public class PacketMaker
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
 
-    public ArraySegment<byte>MakeDropItemBuffer(Item copyItem, int mapId, bool success, int oldInventoryId, float posX, float posY, float posZ)
+    public ArraySegment<byte> MakeDropItemBuffer(Item copyItem, int mapId, bool success, int oldInventoryId, float posX, float posY, float posZ)
     {
         Console.WriteLine($"새로운 아이템 인벤토리 id : {copyItem.InventoryId}");
 
@@ -39,7 +34,8 @@ public class PacketMaker
             PosZ = posZ
         };
 
-        if (copyItem != null) {
+        if (copyItem != null)
+        {
             packet.Item = new ItemInfo
             {
                 InventoryId = copyItem.InventoryId,
@@ -55,7 +51,7 @@ public class PacketMaker
             packet.Item = null;
         }
 
-            string json = JsonSerializer.Serialize(packet);
+        string json = JsonSerializer.Serialize(packet);
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
 
@@ -77,9 +73,9 @@ public class PacketMaker
             },
             MapId = mapId,
             Success = success,
-            PosX= copyItem.PosX,
-            PosY= copyItem.PosY,
-            PosZ= copyItem.PosZ
+            PosX = copyItem.PosX,
+            PosY = copyItem.PosY,
+            PosZ = copyItem.PosZ
         };
 
         string json = JsonSerializer.Serialize(packet);
@@ -190,7 +186,7 @@ public class PacketMaker
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
 
-    public ArraySegment<byte> PlayerTakeDamage(int characterId, int hp, int damage) 
+    public ArraySegment<byte> PlayerTakeDamage(int characterId, int hp, int damage)
     {
         PlayerTakeDamageResponse packet = new PlayerTakeDamageResponse
         {
@@ -211,7 +207,7 @@ public class PacketMaker
         string json = JsonSerializer.Serialize(packet);
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
-    
+
     public ArraySegment<byte> PlayerHitMonster(int spawnId, int hp, int finalDamage) //PlayerHitDamage(monsterId, monster.Hp, finalDamage);
     {
         PlayerHitMonsterResponse packet = new PlayerHitMonsterResponse

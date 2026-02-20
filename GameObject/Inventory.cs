@@ -3,8 +3,6 @@ using Serilog.Context;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
-using System.Text;
 using System.Threading.Tasks;
 
 public class Inventory
@@ -49,7 +47,7 @@ public class Inventory
         var dirtyList = new List<InventoryDto>();
         foreach (var inventoryId in _dirtyInventoryIds)
         {
-            if(ItemList.TryGetValue(inventoryId, out var item))
+            if (ItemList.TryGetValue(inventoryId, out var item))
             {
                 dirtyList.Add(new InventoryDto
                 {
@@ -224,9 +222,9 @@ public class Inventory
         {
             //3. DB에 드랍 아이템 추가
             int newInventoryId = await DbManager.InsertItem(new InventoryDto(copyItem));
-            if (newInventoryId <= 0) 
+            if (newInventoryId <= 0)
                 throw new Exception("드랍아이템 DB 생성 실패 {_owner.CharacterId}, inventoryId {_owner.Inventory}");
-            
+
             Log.Information($"[Inventory] DB에 드랍아이템 추가 완료 inventoryId {newInventoryId}");
 
             //4. 맵의 드랍아이템 리스트에 아이템 추가
@@ -338,7 +336,7 @@ public class Inventory
         int count = 0;
         foreach (var item in ItemList.Values)
         {
-            if(item.ItemId == itemId)
+            if (item.ItemId == itemId)
             {
                 count += item.Count;
             }
@@ -357,7 +355,7 @@ public class Item //인벤토리 내 아이템 정보
     public int Enhancement { get; set; }
     public float PosX { get; set; }
     public float PosY { get; set; }
-    public float PosZ {  get; set; }
+    public float PosZ { get; set; }
 
     //public ItemData Data => DataManager.Instance.GetItemData(ItemId);
 }

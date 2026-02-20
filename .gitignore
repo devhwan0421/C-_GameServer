@@ -9,23 +9,9 @@
 
 ## [ NuGet 관련 ]
 packages/
-*.nuget.props
-*.nuget.targets
 
-## [ 빌드 결과물 ]
-*.exe
-*.dll
-*.pdb
-*.msi
-*.zip
+## [ 서버 설정 파일 ]
+db.config
 
-## [ 데이터베이스 및 로그 ]
+## [ 로그 ]
 *.log
-*.db
-*.mdf
-*.ldf
-
-## [ 기타 OS 임시 파일 ]
-Thumbs.db
-ehthumbs.db
-Desktop.ini

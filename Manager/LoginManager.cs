@@ -1,9 +1,5 @@
 ﻿using Serilog;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 public class LoginManager
@@ -13,7 +9,7 @@ public class LoginManager
 
     public async Task<bool> TryLogin(int accountId, UserSession session)
     {
-        if(_loginAccounts.TryGetValue(accountId, out UserSession oldSession))
+        if (_loginAccounts.TryGetValue(accountId, out UserSession oldSession))
         {
             //강제로 즉시 접속을 해제하지 않는다
             //oldSession.DisConnect(); 

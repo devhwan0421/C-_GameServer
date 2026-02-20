@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 public static class PacketSerializer
 {
@@ -22,8 +19,8 @@ public static class PacketSerializer
 
         byte[] packetData = new byte[totalSize];
         Buffer.BlockCopy(buffer, 0, packetData, 0, totalSize);
-        
-        if(id != 12 && id != 28 && id != 46)
+
+        if (id != 12 && id != 28 && id != 46)
             Console.WriteLine($"[Debug] Serialized Packet: ID={id}, Size={totalSize}, JSON={json}"); // 로그 추가
 
         return new ArraySegment<byte>(packetData);

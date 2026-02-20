@@ -1,17 +1,8 @@
 ﻿using Serilog;
 using Serilog.Context;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
-using static System.Collections.Specialized.BitVector32;
-using Google.Protobuf;
-using Protocol;
 
 public class Player
 {
@@ -41,7 +32,7 @@ public class Player
 
         if (_saveTimer >= _saveInterval)
         {
-            _= DbUpdate();
+            _ = DbUpdate();
 
             _saveTimer = 0;
         }
@@ -79,7 +70,7 @@ public class Player
             characterDto = CharacterInfoToDto();
             PlayerInfoClearDirty();
         }
-        
+
         //아이템 수량이 0일 경우 DB에서 삭제하는 로직 추가할 것
         if (Inventory.IsDirty)
         {
@@ -101,7 +92,7 @@ public class Player
             PlayerInfoIsDirty = true;
             Inventory.RestoreDirty(inventoryDtos);
             QuestComponent.RestoreDirty(questDto);
-            
+
             Log.Fatal("[Player] 플레이어 데이터 업데이트 실패");
 
             return false;
@@ -216,13 +207,13 @@ public class Player
     public void AddExp(int exp)
     {
         Console.WriteLine($"플레이어 경험치 획득! {exp}");
-        while(true)
+        while (true)
         {
-            
+
             if (Exp + exp >= LevelData[Level])
             {
                 int remain = (Exp + exp) - LevelData[Level];
-                
+
                 { //레벨업시 능력치, 체력 등 업데이트 함수 따로 필요 //임시
                     Level++;
                     HealHp(MaxHp); //임시. 현재 클라에 즉시반영 안됨

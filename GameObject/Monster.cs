@@ -1,10 +1,7 @@
 ﻿using Serilog;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class Monster
 {
@@ -78,7 +75,7 @@ public class Monster
     public void Update(float deltaTime)
     {
         //if(SpawnId == 2)
-            //Console.WriteLine($"nickname: {Nickname}, x: {PosX}, y: {PosY} state: {State}");
+        //Console.WriteLine($"nickname: {Nickname}, x: {PosX}, y: {PosY} state: {State}");
         switch (State)
         {
             case 0: //제자리
@@ -99,19 +96,19 @@ public class Monster
         }
     }
 
-   /* _packetSendTimer += deltaTime;
-        if(_packetSendTimer >= PACKET_SEND_INTERVAL)
-        {
-            _packetSendTimer = 0;
-            BroadcastMonsterUpdates();
-        }*/
+    /* _packetSendTimer += deltaTime;
+         if(_packetSendTimer >= PACKET_SEND_INTERVAL)
+         {
+             _packetSendTimer = 0;
+             BroadcastMonsterUpdates();
+         }*/
 
-    
+
     private void UpdateIdle(float deltaTime)
     {
         //Console.WriteLine("idle");
         _idleTimer += deltaTime;
-        if(_idleTimer > 5.0) //2초간 쉬면 이동 상태로 변경
+        if (_idleTimer > 5.0) //2초간 쉬면 이동 상태로 변경
         {
             _idleTimer = 0;
             State = 1;
@@ -149,7 +146,7 @@ public class Monster
         Dir = knockbackDir;
 
         //넉백 상태로 지정
-        State = 2;        
+        State = 2;
     }
 
     private void UpdateKnockback(float deltaTime)

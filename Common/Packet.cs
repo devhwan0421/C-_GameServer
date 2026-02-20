@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 
 public enum PacketID : ushort
 {
@@ -87,7 +86,7 @@ public class GetCharacterListRequest : IPacket
 public class GetCharacterListResponse : IPacket
 {
     public PacketID PacketId => PacketID.GetCharacterListResponse;
-    
+
     //보유 캐릭터 목록 반환
     public List<CharacterInfo> Characters { get; set; } = new List<CharacterInfo>();
 }
