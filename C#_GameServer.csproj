@@ -36,6 +36,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Common\Packet.cs" />
+    <None Include="CsharpGameServer-Doc\doc\networking.md" />
     <Compile Include="DataManage\ItemData.cs" />
     <Compile Include="DataManage\MapData.cs" />
     <Compile Include="DataManage\NpcData.cs" />
@@ -54,7 +55,6 @@
     <Compile Include="GameObject\Map.cs" />
     <Compile Include="GameObject\Monster.cs" />
     <Compile Include="GameObject\Player.cs" />
-    <Compile Include="GameObject\Quest.cs" />
     <Compile Include="DataManage\DataManager.cs" />
     <Compile Include="Game\Dialogue\DialogueAcceptDecline.cs" />
     <Compile Include="Game\Dialogue\DialogueBase.cs" />
@@ -69,7 +69,6 @@
     <Compile Include="Manager\LoginManager.cs" />
     <Compile Include="DataManage\MonsterData.cs" />
     <Compile Include="Manager\NpcManager.cs" />
-    <Compile Include="Manager\QuestManager.cs" />
     <Compile Include="Manager\MapManager.cs" />
     <Compile Include="Network\PacketHandler.cs" />
     <Compile Include="Network\PacketMaker.cs" />
@@ -197,8 +196,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="CsharpGameServer-Doc\doc\architecture.md" />
+    <None Include="CsharpGameServer-Doc\README.md" />
     <None Include="packages.config" />
     <None Include="protocol.proto" />
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="image01.PNG" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets" Condition="Exists('packages\System.ValueTuple.4.6.1\build\net471\System.ValueTuple.targets')" />

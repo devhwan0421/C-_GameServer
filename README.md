@@ -10,7 +10,7 @@
 ## 2. 핵심 기술 스택
 - 언어: C#
 - 네트워크: IOCP
-- 데이터 형식: JSON[리소스 로드, 패킷 직렬화(일부는 ProtoBuf 사용)]
+- 데이터 형식: JSON[리소스 로드, 패킷 직렬화(일부는 ProtoBuf 테스트 사용)]
 - 데이터베이스: MySQL, Dapper(ORM)
 - 로깅: Serilog(Seq 연동)
 
