@@ -15,3 +15,6 @@ db.config
 
 ## [ 로그 ]
 *.log
+/Manager/QuestManager.cs
+/C#_GameServer.csproj
+/GameObject/Quest.cs
