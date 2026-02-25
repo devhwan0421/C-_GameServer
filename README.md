@@ -15,7 +15,7 @@
 - 로깅: Serilog(Seq 연동)
 
 ## 3. 아키텍처
-### 🚀실버바인 서버엔진2 아키텍처 따라하기
+### ⚡실버바인 서버엔진2 아키텍처 따라하기
 - **Stackless Fiber 기반 로직 처리**
 	- 실버바인의 Stackful Fiber 구조를 분석하여 C#의 `async/await`와 Task를 활용하여 `Stackless` 방식으로 구현
 	- 비동기 IO 대기 구간이 포함된 로직을 동기식 순차 코드처럼 작성할 수 있게 하여 생산성을 높이는 구조로 설계
@@ -55,6 +55,6 @@
 ## 5. 구동 이미지
 ![ServerScreen](./image01.PNG)
 
-## 6. 관련 링크
+## 🔗 관련 링크
 - [실버바인 서버 엔진 2 설계 리뷰 (NDC2018)](http://ndcreplay.nexon.com/NDC2018/sessions/NDC2018_0075.html)
 - [C# GameServer 클라이언트](https://github.com/devhwan0421/MiniRPG)
