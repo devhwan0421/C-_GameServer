@@ -15,6 +15,17 @@
 - 로깅: Serilog(Seq 연동)
 
 ## 3. 아키텍처
+
+### 🏗️데이터 흐름도
+> 클라이언트의 요청이 IOCP를 통해 수신되어 싱글 스레드 게임 로직에서 처리되고, 비동기 DB 작업으로 이어지는 전체 파이프라인
+
+![sequenceDiagram](./sequenceDiagram.png)
+
+### 🧱서버 컴포넌트 구조
+> 서버의 주요 도메인 간의 관계와 구조
+
+![classDiagram](./classDiagram.png)
+
 ### ⚡실버바인 서버엔진2 아키텍처 따라하기
 - **Stackless Fiber 기반 로직 처리**
 	- 실버바인의 Stackful Fiber 구조를 분석하여 C#의 `async/await`와 Task를 활용하여 `Stackless` 방식으로 구현
