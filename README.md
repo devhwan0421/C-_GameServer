@@ -60,6 +60,71 @@
 | **아이템 시스템** | **인벤토리** 관리, 아이템 획득 및 사용 로직 처리 |
 | **리소스 로드 시스템** | **JSON 기반 리소스 관리 클래스**를 통해 코드 수정없이 콘텐츠 확장 가능 |
 
+### 📂 프로젝트 구조
+```text
+Root/
+├── GameLogicThread.cs
+├── Program.cs
+├── Protocol.cs
+├── protocol.proto
+├── Common/
+│   └── Packet.cs
+├── DataManage/
+│   ├── DataManager.cs
+│   ├── ItemData.cs
+│   ├── MapData.cs
+│   ├── MonsterData.cs
+│   ├── NpcData.cs
+│   ├── QuestData.cs
+│   └── DataManage/Template/
+│       ├── ItemTemplate.cs
+│       ├── MapTemplate.cs
+│       ├── MonsterTemplate.cs
+│       ├── NpcTemplate.cs
+│       └── QuestTemplate.cs
+├── DB/
+│   ├── DbManager.cs
+│   ├── DbJob.cs
+│   ├── DbTransactionWorker.cs
+│   └── Dto/
+│       └── RequestDto.cs
+├── Game/
+│   ├── Game/Dialogue/
+│   │   ├── DialogueBase.cs
+│   │   ├── DialogueSimple.cs
+│   │   ├── DialogueOk.cs
+│   │   ├── DialogueNext.cs
+│   │   ├── DialogueAcceptDecline.cs
+│   │   └── DialogueSelection.cs
+│   └── Game/Quest/
+│       ├── QuestComponent.cs
+│       ├── QuestCondition.cs
+│       └── QuestProgress.cs
+├── GameData/
+│   ├── Item/ (Item01.json ~ Item04.json)
+│   ├── Map/ (Map01.json)
+│   └── Monster/ (monster01.json ~ monster03.json)
+├── GameObject/
+│   ├── Player.cs
+│   ├── Monster.cs
+│   ├── Map.cs
+│   └── Inventory.cs
+├── Manager/
+│   ├── PlayerManager.cs
+│   ├── MapManager.cs
+│   ├── SessionManager.cs
+│   ├── LoginManager.cs
+│   ├── NpcManager.cs
+│   └── ItemManager.cs
+└── Network/
+    ├── UserSession.cs
+    ├── PacketHandler.cs
+    ├── PacketMaker.cs
+    ├── PacketSerializer.cs
+    ├── RecvBuffer.cs
+    └── PacketParser.cs
+```
+
 ## 4. 설계 상세 및 문서
 - **[C# GameServer 문서](./CsharpGameServer-Doc/README.md)**
 
