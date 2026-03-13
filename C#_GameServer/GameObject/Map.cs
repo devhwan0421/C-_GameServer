@@ -119,17 +119,6 @@ public class Map
         return players;
     }
 
-    /*public void UpdatePlayer(int characterId, float posX, float posY, float posZ)
-    {
-        if (_players.TryGetValue(characterId, out Player player))
-        {
-            player.PosX = posX;
-            player.PosY = posY;
-            player.PosZ = posZ;
-            player.PlayerInfoIsDirty = true;
-        }
-    }*/
-
     public void AddPlayer(Player player)
     {
         _players[player.CharacterId] = player;
@@ -187,37 +176,40 @@ public class Map
 
     public void ChangeMap(Player player, int newMapId, float targetPosX, float targetPosY)
     {
-        Console.WriteLine($"newMapId: {newMapId}, x: {targetPosX}, y: {targetPosY}");
-        //플레이어 스폰 위치 설정
-        player.PosX = targetPosX;
-        player.PosY = targetPosY;
-
         using (LogContext.PushProperty("MapId", MapId))
         using (LogContext.PushProperty("CharacterId", player.CharacterId))
         {
-            Log.Information($"[캐릭터 정보] CharacterId: {player.CharacterId} Nickname: {player.Nickname} Level: {player.Level} HP: {player.Hp}");
+            Log.Information($"[ChangeMap] CharacterId: {player.CharacterId} Nickname: {player.Nickname} Level: {player.Level} HP: {player.Hp}");
+
+            //플레이어 스폰 위치 설정
+            player.PosX = targetPosX;
+            player.PosY = targetPosY;
+
+            //기존 맵 퇴장
+            if (player.CurrentMap == null)
+            {
+                Log.Error("[ChangeMap] CurrentMap is Null");
+            }
+            else
+            {
+                player.CurrentMap.Leave(player.CharacterId);
+            }
+                
+            //새로운 맵 정보 가져오기
+            Map newMap = MapManager.Instance.GetMap(newMapId);
+            if (newMap == null) //클라이언트 작업자의 실수 방지 (포탈 정보 오기입)
+            {
+                Log.Error("[ChangeMap] MapId is None");
+                return;
+            }
+
+            //새 맵 입장
+            newMap.Enter(player);
+
+            //브로드캐스트
+            var moveMapResponseBuff = PacketMaker.Instance.MoveMapResponse(true, newMapId, newMap.GetPlayers(), newMap.GetDropItems(), newMap.GetMonsters());
+            player._mySession.Send(moveMapResponseBuff);
         }
-
-        //기존 맵 퇴장
-        if (player.CurrentMap == null)
-        {
-            Console.WriteLine("플레이어의 현재맵이 null");
-        }
-        player.CurrentMap.Leave(player.CharacterId);
-
-        //새로운 맵 정보 가져오기
-        Map newMap = MapManager.Instance.GetMap(newMapId);
-        if (newMap == null) //클라이언트 작업자의 실수 방지 (포탈 정보 오기입)
-        {
-            Console.WriteLine("해당 맵이 존재하지 않습니다.");
-            return;
-        }
-
-        //새 맵 입장
-        newMap.Enter(player);
-
-        var moveMapResponseBuff = PacketMaker.Instance.MoveMapResponse(true, newMapId, newMap.GetPlayers(), newMap.GetDropItems(), newMap.GetMonsters());
-        player._mySession.Send(moveMapResponseBuff);
     }
 
     public List<ItemInfo> GetDropItems()
@@ -251,7 +243,6 @@ public class Map
         _dropItems.Remove(inventoryId);
     }
 
-    //public async void PickUpItem(UserSession session, int inventoryId)
     public void PickUpItem(UserSession session, int inventoryId)
     {
         Item pickedItem = null;
@@ -270,36 +261,13 @@ public class Map
         pickedItem.OwnerId = session.MyPlayer.CharacterId;
         Console.WriteLine($"pickedItem.OwnerId: {pickedItem.OwnerId}");
 
-        //아이템 소유권 업데이트 -> setdirty에서 하므로 즉시할 필요 x
-        /*int result = await DbManager.ItemOwnerUpdate(inventoryId, pickedItem.OwnerId);
-        if (result <= 0) throw new Exception("DB Update Failed");*/
-
         //본인 인벤토리에 추가
-        //session.MyPlayer.Inventory.AddItem(pickedItem);
         session.MyPlayer.AddItem(pickedItem);
-        //퀘스트 상태에 반영 -> 플렝이어.AddItem함수에서 처리함
-        //session.MyPlayer.QuestComponent.OnNotifyEvent(2, pickedItem.ItemId, pickedItem.Count);
-
-
-
-        //본인 세션에 결과 전송 -> 플레이어.AddItem에서 처리
-        /*var pickUpItemResponseBuff = PacketMaker.Instance.PickUpItemResponse(pickedItem, true);
-        session.Send(pickUpItemResponseBuff);*/
 
         //브로드캐스트
         var dropItemDestroy = PacketMaker.Instance.DropItemDestroy(MapId, inventoryId);
-
         int exceptPlayerId = session.MyPlayer.CharacterId;
-
         BroadcastArraySegment(dropItemDestroy, exceptPlayerId);
-
-        /*foreach (var player in _players.Values)
-        {
-            if (player.CharacterId == exceptPlayerId)
-                continue;
-            player._mySession.Send(dropItemDestroy);
-            Console.WriteLine($"player: {player.CharacterId} 에게 디스트로이 전송완료.");
-        }*/
     }
 
     public void Broadcast<T>(T packet, int exceptPlayerId) where T : IPacket

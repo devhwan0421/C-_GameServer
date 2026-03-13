@@ -156,19 +156,19 @@ public class Monster
             PosX += knockbackPos;
 
         _knockbackTimer += deltaTime;
-        Console.WriteLine($"넉백상태: {_knockbackTimer}");
+        //Console.WriteLine($"넉백상태: {_knockbackTimer}");
         if (_knockbackTimer > _knockbackSec) //넉백 시간 후 State를 3로 하여 플레이어 쫓아가게
         {
             _knockbackTimer = 0;
             State = 3;
-            Console.WriteLine($"State: {State}");
+            //Console.WriteLine($"State: {State}");
         }
         IsDirty = true;
     }
 
     private void UpdateChasing(float deltaTime)
     {
-        Log.Debug($"MonsterId: {MonsterId}, State: {State}, Target: {_target.Nickname}, TargetCurrentMap: {_target.CurrentMap}, TargetPos: ({_target.PosX}, {_target.PosY})");
+        //Log.Debug($"MonsterId: {MonsterId}, State: {State}, Target: {_target.Nickname}, TargetCurrentMap: {_target.CurrentMap}, TargetPos: ({_target.PosX}, {_target.PosY})");
         if (_target == null || _target.CurrentMap != _map || _target.State == 9)
         {
             State = 0;
@@ -214,33 +214,4 @@ public class Monster
             IsDirty = true;
         }
     }
-
-    /*public void Update(long currentTick)
-    {
-
-
-        if (isMoving)
-        {
-            IsDirty = true;
-        }
-
-
-        if (currentTick < _nextMoveTime) return;
-
-        Random rand = new Random();
-        PosX += (float)(rand.NextDouble() * 2 - 1);
-        //PosY += (float)(rand.NextDouble() * 2 - 1);
-        //PosZ += (float)(rand.NextDouble() * 2 - 1);
-
-        _nextMoveTime = currentTick + 2000;
-
-        *//*long now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-
-        if (_nextAiTick > now)
-        {
-            RandomAI(now);
-        }
-
-        UpdatePosition(map);*//*
-    }*/
 }

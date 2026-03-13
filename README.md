@@ -14,17 +14,78 @@
 - 데이터베이스: MySQL, Dapper(ORM)
 - 로깅: Serilog(Seq 연동)
 
-## 3. 아키텍처
+## 3. 시작하기
+이 프로젝트는 윈도우 환경에서의 빌드와 GitHub Actions를 통한 자동 배포(CI/CD)를 지원
+
+### **1) 필수 소프트웨어 설치 (Windows Server)**
+서버의 PowerShell에서 아래 명령어를 실행하여 빌드 환경을 구축
+```powershell
+# .NET Framework 4.7.2 Developer Pack 설치
+winget install --id Microsoft.NetFramework.4.7.2.DevPack -e --source winget
+```
+
+```powershell
+# 비주얼 스튜디오 빌드 도구 설치
+winget install --id Microsoft.VisualStudio.2022.BuildTools -e --source winget
+```
+
+### **2) GitHub Actions 자동 배포 설정**
+`master` 브랜치 푸시 시 **Self-hosted Runner**를 통해 서버에 자동 배포되도록 구성됨
+
+### **A. Self-hosted Runner 등록**
+1. GitHub 저장소의 Settings > Actions > Runners 메뉴로 이동
+2. New self-hosted runner를 클릭하고 Windows를 선택
+3. 가이드에 따라 서버의 PowerShell에서 스크립트를 실행하여 Runner를 등록
+
+### **B. 환경 변수(Secrets) 등록**
+보안을 위해 DB 연결 문자열은 GitHub Secrets에 등록해야 함
+1. Settings > Secrets and variables > Actions 메뉴로 이동
+2. New repository secret을 클릭하여 아래 내용을 추가
+	- Name: **DB_CONFIG**
+	- Value: (아래 양식을 복사하여 수정 후 입력)
+	```code
+	Server=YOUR_HOST;Port=3306;Database=silverbine;User=YOUR_USER;Password=YOUR_PASSWORD;
+	```
+
+### **3) 배포 확인**
+모든 설정 후 코드를 push하면 GitHub Actions가 자동으로 빌드를 수행함
+
+Success PID: 1234 처럼 출력되면 성공적으로 배포된 것
+
+## 4. 테스트 가이드
+본 프로젝트는 MS Test를 활용한 성능 벤치마킹 및 로직 검증을 포함하고 있음
+
+### **방법 1: Visual Studio**
+1. C#_GameServer.sln 솔루션 파일 오픈
+2. 상단 메뉴에서 테스트 -> 테스트 탐색기 실행
+3. UnitTestProject1 프로젝트 내의 테스트 항목을 우클릭하여 실행 클릭
+	- 주요 테스트: IntegrationTest (유저 접속->맵 입장->접속 종료)
+	- 주요 테스트: TestMovePacketBroadCast (1만 명 규모 브로드캐스트 성능 측정)
+
+### **방법 2: CLI**
+본 프로젝트는 .NET Framework 4.7.2 기반으로 작성되었음
+
+터미널에서 실행하려면 Developer PowerShell for VS 환경에서 아래 명령어를 사용
+
+```
+# 1. 빌드 (먼저 수행)
+msbuild
+
+# 2. 테스트 실행 (vstest.console 사용)
+vstest.console.exe .\UnitTestProject1\bin\Debug\UnitTestProject1.dll
+```
+
+## 5. 아키텍처
 
 ### 🏗️데이터 흐름도
 > 클라이언트의 요청이 IOCP를 통해 수신되어 싱글 스레드 게임 로직에서 처리되고, 비동기 DB 작업으로 이어지는 전체 파이프라인
 
-![sequenceDiagram](./sequenceDiagram.png)
+![sequenceDiagram](./Image/sequenceDiagram.png)
 
 ### 🧱서버 컴포넌트 구조
 > 서버의 주요 도메인 간의 관계와 구조
 
-![classDiagram](./classDiagram.png)
+![classDiagram](./Image/classDiagram.png)
 
 ### ⚡실버바인 서버엔진2 아키텍처 따라하기
 - **Stackless Fiber 기반 로직 처리**
@@ -125,11 +186,11 @@ Root/
     └── PacketParser.cs
 ```
 
-## 4. 설계 상세 및 문서
+## 6. 설계 상세 및 문서
 - **[C# GameServer 문서](./CsharpGameServer-Doc/README.md)**
 
-## 5. 구동 이미지
-![ServerScreen](./image01.PNG)
+## 7. 구동 이미지
+![ServerScreen](./Image/image01.PNG)
 
 ## 🔗 관련 링크
 - [실버바인 서버 엔진 2 설계 리뷰 (NDC2018)](http://ndcreplay.nexon.com/NDC2018/sessions/NDC2018_0075.html)

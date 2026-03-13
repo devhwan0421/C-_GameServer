@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace UnitTestProject1
 {
     [TestClass]
-    public class MovePacketBroadCastTest
+    public class MovePacketBroadCastStressTest
     {
         List<Map> _maps;
         List<Player> _players;
@@ -20,7 +20,7 @@ namespace UnitTestProject1
         int USERCOUNT = 10000;
         int MAX_MAP_USERCOUNT = 500;
 
-        public MovePacketBroadCastTest() {
+        public MovePacketBroadCastStressTest() {
             _maps = new List<Map>();
             _players = new List<Player>();
         }

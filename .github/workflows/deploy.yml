@@ -7,6 +7,8 @@ on:
 jobs:
   build-and-run:
     runs-on: self-hosted
+    env: 
+      RUNNER_TRACKING_ID: ""
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -16,16 +18,45 @@ jobs:
 
       - name: Build Project
         run: |
-          msbuild "C#_GameServer.sln" /p:Configuration=Release /p:OutputPath=./publish
+          $publishDir = Join-Path $pwd "publish"
+          msbuild "C#_GameServer.sln" /p:Configuration=Release /p:OutputPath=$publishDir
+
+      - name: Create db.config from Secrets
+        shell: powershell
+        run: |
+          $configContent = @"
+          ${{ secrets.DB_CONFIG }}
+          "@
+          $configContent | Out-File -FilePath "publish\db.config" -Encoding utf8
 
       - name: Clean and Copy GameData
         run: |
-          if (Test-Path "publish\GameData") {
-              Remove-Item -Path "publish\GameData" -Recurse -Force
+          $targetData = Join-Path $pwd "publish\GameData"
+          if (Test-Path $targetData) {
+              Remove-Item -Path $targetData -Recurse -Force
           }
-          xcopy "GameData" "publish\GameData" /E /I /Y
+          xcopy "GameData" $targetData /E /I /Y
 
       - name: Restart Server
+        shell: powershell
         run: |
-          Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Start-Process "./publish/C#_GameServer.exe"
+          $proc = Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue
+          if ($proc) {
+              Stop-Process -Name "C#_GameServer" -Force
+              Start-Sleep -Seconds 2
+          }
+
+          $exePath = Join-Path $pwd "publish\C#_GameServer.exe"
+          $workDir = Join-Path $pwd "publish"
+
+          Write-Host "Starting Server: $exePath"
+          Start-Process -FilePath $exePath -WorkingDirectory $workDir
+
+          Start-Sleep -Seconds 3
+          $check = Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue
+          if ($check) {
+              Write-Host "Success PID: $($check.Id)"
+          } else {
+              Write-Error "Failed"
+              exit 1
+          }
