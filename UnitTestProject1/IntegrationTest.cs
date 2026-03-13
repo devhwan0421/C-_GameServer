@@ -1,6 +1,7 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace UnitTestProject1
@@ -9,9 +10,9 @@ namespace UnitTestProject1
     public class IntegrationTest
     {
         [TestMethod]
-        public async Task Test_Full_Flow_To_WorldEntry()
+        public async Task IntegrationTestFunc()
         {
-            // 1. 준비 및 접속
+            // 1. 접속
             DummyClient client = new DummyClient();
             await client.ConnectAsync("127.0.0.1", 7777);
 
@@ -47,60 +48,4 @@ namespace UnitTestProject1
             Console.WriteLine($"[데이터] 인벤토리 아이템 수: {enterRes.Inventory.Count}");
         }
     }
-
-    /*[TestClass]
-    public class StressTest
-    {
-        private const int TOTAL_CLIENT_COUNT = 1; // 동시 접속자 수
-        private const int REQUEST_PER_SECOND = 1; // 클라이언트당 초당 요청 횟수
-
-        [TestMethod]
-        public async Task MassiveConnectionStressTest()
-        {
-            List<DummyClient> clients = new List<DummyClient>();
-            List<Task> connectionTasks = new List<Task>();
-
-            Console.WriteLine($"{TOTAL_CLIENT_COUNT}개 세션 접속 시작...");
-
-            // 1. 동시 접속 시도 (Burst Connect)
-            for (int i = 0; i < TOTAL_CLIENT_COUNT; i++)
-            {
-                var client = new DummyClient();
-                clients.Add(client);
-                connectionTasks.Add(client.ConnectAsync("127.0.0.1", 7777));
-            }
-
-            // 모든 접속이 완료될 때까지 대기
-            await Task.WhenAll(connectionTasks);
-            Console.WriteLine("모든 클라이언트 접속 완료.");
-
-            // 2. 초당 요청 횟수(TPS) 테스트 루프
-            // 각 클라이언트가 독립적으로 패킷을 쏘는 Task 생성
-            List<Task> spamTasks = new List<Task>();
-            bool isRunning = true;
-
-            foreach (var client in clients)
-            {
-                spamTasks.Add(Task.Run(async () =>
-                {
-                    int delay = 1000 / REQUEST_PER_SECOND;
-                    while (isRunning)
-                    {
-                        // 이동 패킷이나 심박수(Heartbeat) 패킷 등을 시뮬레이션
-                        var moveReq = new PlayerMoveRequest { CharacterId = 1, PosX = 10, PosY = 0, PosZ = 10 };
-                        client.Send(PacketSerializer.Serialize((ushort)PacketID.PlayerMoveRequest, JsonSerializer.Serialize(moveReq)));
-
-                        await Task.Delay(delay);
-                    }
-                }));
-            }
-
-            // 30초 동안 부하 유지 후 종료
-            await Task.Delay(30000);
-            isRunning = false;
-
-            await Task.WhenAll(spamTasks);
-            Console.WriteLine("부하 테스트 종료.");
-        }
-    }*/
 }

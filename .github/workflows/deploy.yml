@@ -7,25 +7,76 @@ on:
 jobs:
   build-and-run:
     runs-on: self-hosted
+    env: 
+      RUNNER_TRACKING_ID: ""
     steps:
+      - name: Stop Server
+        shell: powershell
+        run: |
+          $proc = Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue
+          if ($proc) { 
+            Stop-Process -Name "C#_GameServer" -Force
+            Start-Sleep -Seconds 2 
+            Write-Host "Stop Server"
+          }
+
       - name: Checkout Code
         uses: actions/checkout@v3
-
+      
       - name: NuGet Restore
         run: nuget restore "C#_GameServer.sln"
 
       - name: Build Project
         run: |
-          msbuild "C#_GameServer.sln" /p:Configuration=Release /p:OutputPath=./publish
+          $publishDir = Join-Path $pwd "publish"
+          msbuild "C#_GameServer.sln" /p:Configuration=Release /p:OutputPath=$publishDir
+
+      - name: Create db.config from Secrets
+        shell: powershell
+        run: |
+          $configContent = @"
+          ${{ secrets.DB_CONFIG }}
+          "@
+          $configContent | Out-File -FilePath "publish\db.config" -Encoding utf8
 
       - name: Clean and Copy GameData
         run: |
-          if (Test-Path "publish\GameData") {
-              Remove-Item -Path "publish\GameData" -Recurse -Force
+          $targetData = Join-Path $pwd "publish\GameData"
+          if (Test-Path $targetData) {
+              Remove-Item -Path $targetData -Recurse -Force
           }
-          xcopy "GameData" "publish\GameData" /E /I /Y
+          xcopy "GameData" $targetData /E /I /Y
 
       - name: Restart Server
+        shell: powershell
         run: |
-          Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue | Stop-Process -Force
-          Start-Process "./publish/C#_GameServer.exe"
+          $exePath = Join-Path $pwd "publish\C#_GameServer.exe"
+          $workDir = Join-Path $pwd "publish"
+
+          Write-Host "Starting Server: $exePath"
+          Start-Process -FilePath $exePath -WorkingDirectory $workDir
+
+          Start-Sleep -Seconds 5
+
+      - name: Run Integration Tests
+        shell: powershell
+        run: |
+          Write-Host "Running Integration Tests via VSTest..."
+          vstest.console.exe "publish\UnitTestProject1.dll" "/logger:console;verbosity=detailed"
+          
+          if ($LASTEXITCODE -ne 0) {
+              Write-Error "Integration Tests Failed!"
+              $procName = "C#_GameServer"
+              Stop-Process -Name $procName -Force -ErrorAction SilentlyContinue
+              exit 1
+          }
+
+      - name: End
+        run: |
+          $check = Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue
+          if ($check) {
+              Write-Host "Server is running successfully after tests. PID: $($check.Id)"
+          } else {
+              Write-Error "Server died after tests!"
+              exit 1
+          }

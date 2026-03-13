@@ -207,7 +207,7 @@ public class PacketHandler
     }
 
     private Task HandlePlayerMoveRequest(UserSession session, string json)
-   {
+    {
         PlayerMoveRequest req = JsonSerializer.Deserialize<PlayerMoveRequest>(json);
         session.MyPlayer.UpdatePlayerPos(req);
 

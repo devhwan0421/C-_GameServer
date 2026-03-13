@@ -73,7 +73,7 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
                 MapManager.Instance.Update(deltaTime, (long)nextTickTime);
                 PlayerManager.Instance.Update(deltaTime);
 
-                UpdateStatistics((long)currentTime, (long)sw.Elapsed.TotalMilliseconds);
+                //UpdateStatistics((long)currentTime, (long)sw.Elapsed.TotalMilliseconds);
 
                 nextTickTime += MS_PER_TICK;
 

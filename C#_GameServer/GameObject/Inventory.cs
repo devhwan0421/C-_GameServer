@@ -135,64 +135,6 @@ public class Inventory
             return item.ItemId;
         }
     }
-    /*public async void UseItem(UserSession session, int inventoryId)
-    {
-        Console.WriteLine($"아이템 사용 요청 들어옴 id: {inventoryId}");
-        Item item = null;
-        if (!ItemList.TryGetValue(inventoryId, out item) || item.Count <= 0)
-        {
-            var sendBuff = PacketMaker.Instance.MakeUseItemBuffer(inventoryId, false, -1, -1);
-            _mySession.Send(sendBuff);
-            Log.Error($"[Inventory] 존재하지 않는 아이템을 사용했습니다 characterId: {session.MyPlayer.CharacterId}, inventoryId: {inventoryId}");
-            return;
-        }
-
-        item.Count--;
-        //SetDirty(inventoryId);
-        if (item.Count == 0) ItemList.Remove(inventoryId);
-
-        try
-        {
-            Console.WriteLine($"session.MyPlayer.CharacterId: {session.MyPlayer.CharacterId}, inventoryId: {inventoryId}, item.ItemId: {item.ItemId}");
-            //db 갱신은 어느 타이밍에 할 것인지 고민 필요. 모아서 하면 좋을 듯 한데 지금은 바로 업데이트
-            int result = await DbManager.DecreaseIntemCount(session.MyPlayer.CharacterId, inventoryId, 1);
-            if (result <= 0) throw new Exception("DB Update Failed");
-
-            Console.WriteLine("result: " + result);
-
-            //ItemData itemData = DataManager.Instance.GetItemData(item.ItemId);
-            ItemTemplate itemTemplate = DataManager.Instance.Item.GetItemData(item.ItemId);
-            if (itemTemplate != null)
-            {
-                if (itemTemplate.Type == 0)
-                {
-                    Console.WriteLine("힐템 사용");
-
-                    if (_mySession.MyPlayer.Hp + itemTemplate.HealAmount > _mySession.MyPlayer.MaxHp)
-                    {
-                        _mySession.MyPlayer.Hp += _mySession.MyPlayer.MaxHp;
-                    }
-                    else
-                    {
-                        _mySession.MyPlayer.Hp += itemTemplate.HealAmount;
-                    }
-                }
-            }
-
-            var sendBuff = PacketMaker.Instance.MakeUseItemBuffer(inventoryId, true, itemTemplate.Type, itemTemplate.HealAmount);
-            _mySession.Send(sendBuff);
-        }
-        catch (Exception ex)
-        {
-            if (ItemList.ContainsKey(inventoryId))
-                ItemList[inventoryId].Count++;
-            else
-                ItemList.Add(inventoryId, item);
-            var sendBuff = PacketMaker.Instance.MakeUseItemBuffer(inventoryId, false, -1, -1);
-            _mySession.Send(sendBuff);
-            Console.WriteLine($"UseItem Error: {ex.Message}");
-        }
-    }*/
 
     public async Task<int> DropItem(DropItemRequest req)
     {
