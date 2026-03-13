@@ -1,4 +1,6 @@
-﻿using Serilog;
+﻿using Google.Protobuf;
+using Protocol;
+using Serilog;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -117,15 +119,41 @@ public class UserSession
                 //패킷이 다 안 왔으면 탈출
                 if (data.Count < size) break;
 
-                //바디 추출
-                string json = Encoding.UTF8.GetString(data.Array, data.Offset + 4, size - 4);
-
-                _gameLogicThread.Enqueue(async () =>
+                //GoogleProtoBuf TEST
+                if (id == 11 || id == 900)
                 {
-                    //_handler.OnRecvPacket(this, (PacketID)id, json);
-                    await this.ProcessPacketAsync((PacketID)id, json);
-                });
+                    ArraySegment<byte> payload = new ArraySegment<byte>(data.Array, data.Offset + 4, size - 4);
 
+                    IMessage packetData = null;
+                    if (id == 11)
+                    {
+                        packetData = PlayerMoveRequestProto.Parser.ParseFrom(payload);
+                    }
+                    else if(id == 900)
+                    {
+                        packetData = TimeSyncRequestProto.Parser.ParseFrom(payload);
+                    }
+
+                    if (packetData != null)
+                    {
+                        _gameLogicThread.Enqueue(async () =>
+                        {
+                            // 파싱된 객체를 그대로 전달
+                            await this.ProcessPacketAsyncProto((_PacketID)id, packetData);
+                        });
+                    }
+                }
+                else
+                {
+                    //바디 추출
+                    string json = Encoding.UTF8.GetString(data.Array, data.Offset + 4, size - 4);
+
+                    _gameLogicThread.Enqueue(async () =>
+                    {
+                        //_handler.OnRecvPacket(this, (PacketID)id, json);
+                        await this.ProcessPacketAsync((PacketID)id, json);
+                    });
+                }
                 //처리한 패킷만큼 읽기 커서 이동
                 _recvBuffer.OnRead(size);
             }
@@ -135,7 +163,6 @@ public class UserSession
         }
         else
         {
-            Console.WriteLine($"ProcessReceive에서 종료 {MyPlayer.Nickname}({MyPlayer.UserId})");
             _ = DisConnect();
         }
     }
@@ -153,6 +180,21 @@ public class UserSession
             _packetSemaphore.Release();
         }
     }
+
+    public async Task ProcessPacketAsyncProto(_PacketID id, IMessage packetData)
+    {
+        await _packetSemaphore.WaitAsync();
+
+        try
+        {
+            await _handler.OnRecvPacketProto(this, id, packetData);
+        }
+        finally
+        {
+            _packetSemaphore.Release();
+        }
+    }
+
     /*public async Task ProcessPacketAsync(PacketID id, string json)
     {
         await _packetSemaphore.WaitAsync(TimeSpan.FromSeconds(5)); //5초가 지나면 패킷이 무시될 수 있음. 상태 불일치 문제가 생길 수 있음
@@ -226,7 +268,7 @@ public class UserSession
         }
     }*/
 
-    private void RegisterSend()
+    internal virtual void RegisterSend()
     {
         lock (_lock)
         {

@@ -3,20 +3,48 @@ syntax = "proto3";
 package Protocol;
 option csharp_namespace = "Protocol";
 
-message PlayerMoveResponse{
-    int32 characterId = 1;
-    float posX = 2;
-    float posY = 3;
-    float posZ = 4;
-    int32 dir = 5;
-    int32 state = 6;
+enum _PacketID {
+    None = 0;
+    PlayerMoveRequestId = 11;
+    PlayerMoveResponseId = 12;
+    PlayerMoveListResponseId = 46;
+    TimeSyncRequestId = 900;
+    TimeSyncResponseId = 901;
 }
 
-message PlayerMoveRequest{
+message PlayerMoveRequestProto{
     int32 characterId = 1;
     float posX = 2;
     float posY = 3;
     float posZ = 4;
     int32 dir = 5;
     int32 state = 6;
+    float vx = 7;
+    float vy = 8;
+    int64 timeStamp = 9;
+}
+
+message PlayerMoveResponseProto{
+    int32 characterId = 1;
+    float posX = 2;
+    float posY = 3;
+    float posZ = 4;
+    int32 dir = 5;
+    int32 state = 6;
+    float vx = 7;
+    float vy = 8;
+    int64 timeStamp = 9;
+}
+
+message PlayerMoveListResponseProto{
+    repeated PlayerMoveResponseProto players = 1;
+}
+
+message TimeSyncRequestProto{
+    int64 clientSendTime = 1;
+}
+
+message TimeSyncResponseProto{
+    int64 clientSendTime = 1;
+    int64 serverTime =2;
 }

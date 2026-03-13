@@ -1,0 +1,42 @@
+{
+  "NpcId": 1,
+  "Name": "촌장 바르만",
+  "DefaultDialogueId": 1001,
+  "Dialogues": {
+    "1001": {
+      "NpcId": 1,
+      "Type": 0,
+      "Contents": "허허, 오늘도 날씨가 좋구먼."
+    },
+    "2001": {
+      "NpcId": 1,
+      "Type": 2,
+      "Contents": "자네, 요즘 고블린들 때문에 마을이 흉흉하다는 소식 들었나?",
+      "NextDialogueId": 2002
+    },
+    "2002": {
+      "NpcId": 1,
+      "Type": 3,
+      "Contents": "고블린 10마리만 좀 잡아주게나. 보상은 톡톡히 하겠네.",
+      "QuestId": 101
+    },
+    "3001": {
+      "NpcId": 1,
+      "Type": 0,
+      "Contents": "아직 고블린들을 다 처리하지 못한 모양이군."
+    },
+    "4001": {
+      "NpcId": 1,
+      "Type": 1,
+      "Contents": "오! 정말 고생 많았네. 여기 약속한 보상일세."
+    }
+  },
+  "QuestMap": {
+    "101": {
+      "QuestTitle": "고블린 소탕",
+      "StartId": 2001,
+      "ProgressId": 3001,
+      "CompletableId": 4001
+    }
+  }
+}

@@ -1,6 +1,10 @@
-﻿using Serilog;
+﻿using Google.Protobuf;
+using Protocol;
+using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
+using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -49,6 +53,20 @@ public class PacketHandler
         }
 
         Log.Warning("[PacketHandler] 정의되지 않은 패킷이 수신되었습니다.");
+        return Task.CompletedTask;
+    }
+
+    public Task OnRecvPacketProto(UserSession session, _PacketID id, IMessage packetData)
+    {
+        switch (id)
+        {
+            case _PacketID.PlayerMoveRequestId:
+                HandlePlayerMoveRequest(session, (PlayerMoveRequestProto)packetData);
+                break;
+            case _PacketID.TimeSyncRequestId:
+                HandleTimeSyncProto(session, (TimeSyncRequestProto)packetData);
+                break;
+        }
         return Task.CompletedTask;
     }
 
@@ -187,127 +205,30 @@ public class PacketHandler
             Log.Error($"[Enter World Error] {ex.Message}");
         }
     }
-    /*private async Task HandleEnterWorldRequest(UserSession session, string json)
-    {
-        EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
-
-        //DB에서 캐릭터 정보 조회 => 로그인 때 조회한 정보 활용하는 걸로 바꿀 것(db x)
-        CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
-        if (character == null) return;
-
-        Task<List<InventoryDto>> inventoryTask = DbManager.GetInventoryByOwnerId(character.id);
-        Task<List<QuestDto>> questTask = DbManager.GetQuestByCharacterId(character.id);
-        Task<List<QuestProgressDto>> questProgressTask = DbManager.GetQuestProgressByCharacterId(character.id);
-
-        await Task.WhenAll(inventoryTask, questTask, questProgressTask);
-
-        var inventory = await inventoryTask;
-        var quest = await questTask;
-        var questProgress = await questProgressTask;
-
-        //플레이어 객체 생성 및 플레이어 매니저 등록 + 세션에 플레이어 연결
-        Player player = new Player(session, character);
-        bool result = await PlayerManager.Instance.Enter(player);
-        if (!result)
-        {
-            Log.Fatal("[PacketHandler] 플레이어매니저 등록 실패. 작업 중단");
-            return;
-        }
-        session.MyPlayer = player;
-
-        if (inventory != null)
-        {
-            //세션의 플레이어 객체에 인벤토리 캐싱
-            player.Inventory.InitInventory(inventory);
-        }
-
-        if(quest != null)
-        {
-            //퀘스트 정보 캐싱
-            player.QuestComponent.LoadDbQuestTable(quest, questProgress);
-        }
-
-        //맵 조회 및 입장
-        Map targetMap = MapManager.Instance.GetMap(player.Map);
-        targetMap.Enter(player);//클라이언트랑 순서 맞춰야 함. 현재 좀 애매해짐 => 해당 유저 빼고 모두 브로드 캐스트. 이대로 진행
-
-        //리스폰스 전송
-        var enterWorldResponseBuff = PacketMaker.Instance.EnterWorldResponse(true, character, inventory, targetMap.GetPlayers(), targetMap.GetDropItems(), targetMap.GetMonsters());
-        session.Send(enterWorldResponseBuff);
-
-        Log.Information($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
-    }*/
-    /*private async Task HandleEnterWorldRequest(UserSession session, string json)
-    {
-        EnterWorldRequest req = JsonSerializer.Deserialize<EnterWorldRequest>(json);
-
-        //DB에서 캐릭터 정보 조회 => 로그인 때 조회한 정보 활용하는 걸로 바꿀 것(db x)
-        CharacterDto character = await DbManager.GetCharacterByCharacterId(req.CharacterId);
-        if (character == null) return;
-
-        *//*Task<List<InventoryDto>> inventoryTask = DbManager.GetInventoryByOwnerId(character.id);
-        Task<List<QuestDto>> questTask = DbManager.GetQuestByCharacterId(character.id);
-        Task<List<QuestProgressDto>> questProgressTask = DbManager.GetQuestProgressByCharacterId(character.id);
-
-        await Task.WhenAll(inventoryTask, questTask, questProgressTask);
-
-        var inventory = await inventoryTask;
-        var quest = await questTask;
-        var questProgress = await questProgressTask;*//*
-
-
-
-        //플레이어 객체 생성 및 플레이어 매니저 등록 + 세션에 플레이어 연결
-        Player player = new Player(session, character);
-        PlayerManager.Instance.Enter(player);
-        session.MyPlayer = player;
-
-        //맵 조회 및 입장
-        Map targetMap = MapManager.Instance.GetMap(player.Map);
-        targetMap.Enter(player);//클라이언트랑 순서 맞춰야 함. 현재 좀 애매해짐 => 해당 유저 빼고 모두 브로드 캐스트. 이대로 진행
-
-        //인벤토리 조회
-        List<InventoryDto> inventory = await DbManager.GetInventoryByOwnerId(player.CharacterId);
-        if (inventory != null)
-        {
-            //세션의 플레이어 객체에 인벤토리 캐싱
-            player.Inventory.InitInventory(inventory);
-
-            //리스폰스 전송
-            var enterWorldResponseBuff = PacketMaker.Instance.EnterWorldResponse(true, character, inventory, targetMap.GetPlayers(), targetMap.GetDropItems(), targetMap.GetMonsters());
-            session.Send(enterWorldResponseBuff);
-        }
-
-        Console.WriteLine($"[Enter World] 캐릭터 ID: {player.CharacterId}, 이름: {player.Nickname}, 위치: ({player.PosX}, {player.PosY}, {player.PosZ})");
-    }*/
 
     private Task HandlePlayerMoveRequest(UserSession session, string json)
-    {
-        //Console.WriteLine($"무브패킷 도착: {json}");
+   {
         PlayerMoveRequest req = JsonSerializer.Deserialize<PlayerMoveRequest>(json);
-
-        //int playerId = session.MyPlayer.CharacterId;
-
-        //Map targetMap = MapManager.Instance.GetMap(session.MyPlayer.Map);
-        //targetMap.UpdatePlayer(req.CharacterId, req.PosX, req.PosY, req.PosZ);
-
-        /*if (req.State == 3)
-            Console.WriteLine("넉백상태");*/
-
-        /*PlayerMoveResponse res = new PlayerMoveResponse
-        {
-            CharacterId = req.CharacterId,
-            PosX = req.PosX,
-            PosY = req.PosY,
-            PosZ = req.PosZ,
-            Dir = req.Dir,
-            State = req.State
-        };*/
-        //session.MyPlayer.Move(req);
         session.MyPlayer.UpdatePlayerPos(req);
 
-        //Console.WriteLine("브로드캐스트");
-        //targetMap.Broadcast(res, session.MyPlayer.CharacterId);
+        return Task.CompletedTask;
+    }
+
+    private Task HandlePlayerMoveRequest(UserSession session, PlayerMoveRequestProto req){
+        //서버에서 이동 패킷을 받으면 처리하는 함수
+        session.MyPlayer.UpdatePlayerPos(req); //플레이어 좌표받으면 해당 객체에 업데이트만 하고 종료
+        return Task.CompletedTask;
+    }
+
+    private Task HandleTimeSyncProto(UserSession session, TimeSyncRequestProto req)
+    {
+        var res = new TimeSyncResponseProto
+        {
+            ClientSendTime = req.ClientSendTime,
+            ServerTime = DateTime.UtcNow.Ticks
+        };
+        ArraySegment<byte> packet = PacketSerializer.SerializeProto((ushort)res.PacketId, res);
+        session.Send(packet);
 
         return Task.CompletedTask;
     }

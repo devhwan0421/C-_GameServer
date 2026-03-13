@@ -1,0 +1,31 @@
+name: GameServer Self-Hosted Deploy
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build-and-run:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: NuGet Restore
+        run: nuget restore "C#_GameServer.sln"
+
+      - name: Build Project
+        run: |
+          msbuild "C#_GameServer.sln" /p:Configuration=Release /p:OutputPath=./publish
+
+      - name: Clean and Copy GameData
+        run: |
+          if (Test-Path "publish\GameData") {
+              Remove-Item -Path "publish\GameData" -Recurse -Force
+          }
+          xcopy "GameData" "publish\GameData" /E /I /Y
+
+      - name: Restart Server
+        run: |
+          Get-Process -Name "C#_GameServer" -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Process "./publish/C#_GameServer.exe"

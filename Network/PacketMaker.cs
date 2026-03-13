@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Google.Protobuf;
+using Protocol;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
@@ -342,7 +344,7 @@ public class PacketMaker
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
 
-    public ArraySegment<byte> PlayerMoveList(List<PlayerInfo> movedPlayers)
+    public ArraySegment<byte> PlayerMoveList(List<PlayerInfo> movedPlayers, long nextTickTime)
     {
         PlayerMoveListResponse packet = new PlayerMoveListResponse();
 
@@ -350,6 +352,7 @@ public class PacketMaker
         {
             packet.Players.Add(new PlayerMoveResponse
             {
+                Timestamp = nextTickTime,
                 CharacterId = player.CharacterId,
                 PosX = player.PosX,
                 PosY = player.PosY,
@@ -361,4 +364,42 @@ public class PacketMaker
         string json = JsonSerializer.Serialize(packet);
         return PacketSerializer.Serialize((ushort)packet.PacketId, json);
     }
+
+    public ArraySegment<byte> PlayerMoveListProto(List<PlayerInfo> movedPlayers)
+    {
+        PlayerMoveListResponseProto packet = new PlayerMoveListResponseProto();
+
+        foreach (var player in movedPlayers)
+        {
+            packet.Players.Add(new PlayerMoveResponseProto
+            {
+                CharacterId = player.CharacterId,
+                PosX = player.PosX,
+                PosY = player.PosY,
+                PosZ = player.PosZ,
+                Dir = player.Dir,
+                State = player.State,
+                Vx = player.Vx,
+                Vy = player.Vy,
+                TimeStamp = player.Timestamp
+            });
+        }
+
+        return PacketSerializer.SerializeProto((ushort)packet.PacketId, packet);
+    }
+
+    /*public ArraySegment<byte> PlayerMoveProtoBuf(int characterId, float posX, float posY, float posZ, int dir, int state)
+    {
+        PlayerMoveResponseProto packet = new PlayerMoveResponseProto
+        {
+            CharacterId = characterId,
+            PosX = posX,
+            PosY = posY,
+            PosZ = posZ,
+            Dir = dir,
+            State = state
+        };
+
+        return PacketSerializer.SerializeProto((ushort)packet.PacketId, packet);
+    }*/
 }

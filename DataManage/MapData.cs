@@ -6,7 +6,7 @@ using System.Text.Json;
 
 public class MapData
 {
-    private Dictionary<int, Map> _mapDatas = new Dictionary<int, Map>();
+    internal Dictionary<int, Map> _mapDatas = new Dictionary<int, Map>();
 
     public int Count() => _mapDatas.Count();
 

@@ -74,8 +74,8 @@ public class Monster
 
     public void Update(float deltaTime)
     {
-        //if(SpawnId == 2)
-        //Console.WriteLine($"nickname: {Nickname}, x: {PosX}, y: {PosY} state: {State}");
+        //if(SpawnId == 3)
+            //Console.WriteLine($"nickname: {Nickname}, x: {PosX}, y: {PosY}, state: {State}, minX: {MinPosX}, maxX: {MaxPosX}");
         switch (State)
         {
             case 0: //제자리

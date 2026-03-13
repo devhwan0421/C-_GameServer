@@ -152,6 +152,10 @@ public class PlayerInfo
 
     public int Dir { get; set; }
 
+    public float Vx { get; set; }
+    public float Vy { get; set; }
+    public long Timestamp { get; set; }
+
     //public EquipmentInfo Equipment { get; set; }
 }
 
@@ -240,6 +244,7 @@ public class PlayerMoveRequest : IPacket
 public class PlayerMoveResponse : IPacket
 {
     public PacketID PacketId => PacketID.PlayerMoveResponse;
+    public long Timestamp { get; set; }
     public int CharacterId { get; set; }
     public float PosX { get; set; }
     public float PosY { get; set; }
@@ -551,6 +556,7 @@ public class PlayerMoveListResponse : IPacket
     public PacketID PacketId => PacketID.PlayerMoveListResponse;
     public List<PlayerMoveResponse> Players { get; set; } = new List<PlayerMoveResponse>();
 }
+
 
 /*[Serializable]
 public class DialogueResponse

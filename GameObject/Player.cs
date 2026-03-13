@@ -1,4 +1,5 @@
-﻿using Serilog;
+﻿using Protocol;
+using Serilog;
 using Serilog.Context;
 using System;
 using System.Collections.Generic;
@@ -9,6 +10,11 @@ public class Player
     public readonly UserSession _mySession;
 
     //public CharacterInfo
+
+    //broadcast
+    public bool NeedMoveSync = false;
+    public long Timestamp;
+    public float Vx, Vy;
 
     //DB
     //public bool IsDirty = false; //플레이어 데이터에 변화가 있었는 지 체크
@@ -64,6 +70,8 @@ public class Player
 
         //PlayerInfoIsDirty = true; //임시 활성화
         //이제 이동시 플래그 활성화 됨
+
+        Console.WriteLine($"PlayerInfoIsDirty: {PlayerInfoIsDirty}, Inventory.IsDirty: {Inventory.IsDirty}, QuestComponent.IsDirty: {QuestComponent.IsDirty}");
 
         if (PlayerInfoIsDirty)
         {
@@ -313,10 +321,12 @@ public class Player
         Hp = Math.Min(Hp + healAmount, MaxHp);
     }
 
+    //플레이어 클래스의 UseItem 함수
     public void UseItem(int inventoryId)
     {
         using (LogContext.PushProperty("CharacterId", CharacterId))
         {
+            //인벤토리에서 DB조회 후 결과 값 반환
             int itemId = Inventory.UseItem(inventoryId);
             if (itemId != -1)
             {
@@ -344,5 +354,20 @@ public class Player
         Dir = req.Dir;
         State = req.State;
         PlayerInfoIsDirty = true;
+        NeedMoveSync = true;
+    }
+
+    public void UpdatePlayerPos(PlayerMoveRequestProto req)
+    {
+        PosX = req.PosX;
+        PosY = req.PosY;
+        PosZ = req.PosZ;
+        Dir = req.Dir;
+        State = req.State;
+        Vx = req.Vx;
+        Vy = req.Vy;
+        Timestamp = req.TimeStamp;
+        PlayerInfoIsDirty = true;
+        NeedMoveSync = true;
     }
 }

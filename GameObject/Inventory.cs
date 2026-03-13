@@ -37,6 +37,7 @@ public class Inventory
 
     private void SetDirty(int inventoryId)
     {
+        Console.WriteLine("setdirty: " + inventoryId);
         IsDirty = true;
         _dirtyInventoryIds.Add(inventoryId);
     }
@@ -58,6 +59,7 @@ public class Inventory
                     is_equipped = item.IsEquipped ? 1 : 0,
                     enhancement = item.Enhancement
                 });
+                Console.WriteLine($"inventoryId: {inventoryId}, owner_id: {item.OwnerId}");
             }
         }
         return dirtyList;
@@ -85,7 +87,7 @@ public class Inventory
 
     public void AddItem(Item newItem)
     {
-        //Console.WriteLine($"인벤토리 목록에 아이템 추가됨 id: {newItem.InventoryId}");
+        Console.WriteLine($"인벤토리 목록에 아이템 추가됨 id: {newItem.InventoryId}, owner: {newItem.OwnerId}");
         ItemList.Add(newItem.InventoryId, newItem);
         SetDirty(newItem.InventoryId);
     }

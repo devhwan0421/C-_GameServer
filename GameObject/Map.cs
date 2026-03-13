@@ -23,7 +23,8 @@ public class Map
     private Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
 
     private float _packetSendTimer = 0;
-    private const float _packetSendInterval = 0.1f;
+    //private const float _packetSendInterval = 0.1f;
+    private float _packetSendInterval = 0.1f;
     private float _waitDeactivateTimer = 0;
     private const float _waitActivateSec = 10.0f;
 
@@ -44,33 +45,29 @@ public class Map
         Console.WriteLine($"MapId: {MapId} Init Complete.");
     }
 
-    public void Update(float deltaTime)
-    {
-        if (!_isActive) return;
+    public void Update(float deltaTime, long nextTickTime){
+        //게임 로직스레드에서 일정 주기로 호출하는 맵의 Update 함수
+        if (!_isActive) return; //맵 활성화 여부 체크
 
-        if (_isPlayerZero)
+        if (_isPlayerZero) //맵에 유저가 없을 경우 맵 업데이트 함수 비활성화
         {
             _waitDeactivateTimer += deltaTime;
             if (_waitDeactivateTimer >= _waitActivateSec)
             {
-                _isActive = false;
+                _isActive = false; //맵 비활성화
                 _waitDeactivateTimer = 0;
             }
         }
 
-        foreach (var monster in _monsters.Values)
-        {
-            //monster.Update(deltaTime, this);
-            monster.Update(deltaTime);
-            //Console.WriteLine($"{monster.Nickname} Update. {monster.PosX}, {monster.PosY}");
-        }
+        foreach (var monster in _monsters.Values) monster.Update(deltaTime); //해당 맵 몬스터 업데이트
 
+        //133ms 주기 마다 브로드캐스트 수행
         _packetSendTimer += deltaTime;
         if (_packetSendTimer >= _packetSendInterval)
         {
             _packetSendTimer = 0;
             BroadcastMonsterUpdates();
-            BroadcastPlayerPosUpdates();
+            BroadcastPlayerPosUpdates(nextTickTime); //수집된 플레이어 좌표를 브로드캐스트
         }
     }
 
@@ -271,6 +268,7 @@ public class Map
 
         //아이템 오너 변경
         pickedItem.OwnerId = session.MyPlayer.CharacterId;
+        Console.WriteLine($"pickedItem.OwnerId: {pickedItem.OwnerId}");
 
         //아이템 소유권 업데이트 -> setdirty에서 하므로 즉시할 필요 x
         /*int result = await DbManager.ItemOwnerUpdate(inventoryId, pickedItem.OwnerId);
@@ -315,15 +313,7 @@ public class Map
         }
     }
 
-    public void BroadcastArraySegment(ArraySegment<byte> packet, int exceptPlayerId = -1)
-    {
-        foreach (var player in _players.Values)
-        {
-            if (player.CharacterId == exceptPlayerId)
-                continue;
-            player._mySession.Send(packet);
-        }
-    }
+    
 
     public void BroadcastSpwanItem(Item copyItem, int exceptPlayerId = -1)
     {
@@ -349,7 +339,7 @@ public class Map
 
             Monster monster = new Monster(spawnId, monsterData, moveData, this);
 
-            Console.WriteLine($"spawnId: {monster.SpawnId}, monsterId: {monster.MonsterId} posX: {monster.PosX}, posY: {monster.PosY}, minPosX: {monster.MinPosX}, maxPosX: {monster.MaxPosX}");
+            Console.WriteLine($"spawnId: {monster.SpawnId}, monsterId: {monster.MonsterId}, nickName: {monster.Nickname} posX: {monster.PosX}, posY: {monster.PosY}, minPosX: {monster.MinPosX}, maxPosX: {monster.MaxPosX}");
             _monsters[monster.SpawnId] = monster;
             spawnId++;
         }
@@ -490,14 +480,14 @@ public class Map
         }
     }
 
-    private void BroadcastPlayerPosUpdates()
-    {
+    internal void BroadcastPlayerPosUpdates(long nextTickTime){
+        //좌표 갱신이 필요한 플레이어들을 리스트로 모아 브로드캐스트 하는 함수
         List<PlayerInfo> movedPlayers = new List<PlayerInfo>();
 
+        //직렬화할 플레이어 리스트 스냅샷
         foreach (var player in _players.Values)
         {
-            //이동 PlayerInfoIsDirty 혼용 수정(이건 db업데이트용임)
-            if (player.PlayerInfoIsDirty)
+            if (player.NeedMoveSync) //좌표 갱신 필요 여부 확인
             {
                 movedPlayers.Add(new PlayerInfo
                 {
@@ -506,28 +496,28 @@ public class Map
                     PosY = player.PosY,
                     PosZ = player.PosZ,
                     Dir = player.Dir,
-                    State = player.State
+                    State = player.State,
+                    Vx = player.Vx,
+                    Vy = player.Vy,
+                    Timestamp = player.Timestamp
                 });
+
+                player.NeedMoveSync = false; //좌표 갱신이 이루어진 플레이어 Flag값 비활성화
             }
         }
 
-        var moveBuff = PacketMaker.Instance.PlayerMoveList(movedPlayers);
-        BroadcastArraySegment(moveBuff);
+        if (movedPlayers.Count < 1) return;
+        var moveBuff = PacketMaker.Instance.PlayerMoveListProto(movedPlayers); //직렬화
+        BroadcastArraySegment(moveBuff); //브로드캐스트 처리 함수
     }
-    /*private void BroadcastPlayerPosUpdates()
-    {
-        foreach (var player in _players.Values)
-        {
-            //이동 PlayerInfoIsDirty 혼용 수정(이건 db업데이트용임)
-            if (player.PlayerInfoIsDirty)
-            {
-                //나중에 플레이어 인포로 묶을 것
-                //var moveBuff = PacketMaker.Instance.PlayerMove(player.info);
-                var moveBuff = PacketMaker.Instance.PlayerMove(
-                    player.CharacterId, player.PosX, player.PosY, player.PosZ, player.Dir, player.State);
 
-                BroadcastArraySegment(moveBuff, player.CharacterId);
-            }
+    public void BroadcastArraySegment(ArraySegment<byte> packet, int exceptPlayerId = -1)
+    {
+        foreach (var player in _players.Values) //맵에 접속한 유저에게 모두 적용
+        {
+            if (player.CharacterId == exceptPlayerId)
+                continue;
+            player._mySession.Send(packet); //각 세션큐로 넘김
         }
-    }*/
+    }
 }

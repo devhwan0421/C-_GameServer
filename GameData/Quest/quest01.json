@@ -1,0 +1,22 @@
+{
+  "QuestId": 101,
+  "QuestName": "고블린 부락의 위협",
+  "Description": "마을 서쪽의 고블린들을 처치하고 증거품을 가져오세요.",
+  "RequiredLevel": 1,
+  "RequiredQuestId": 0,
+  "Conditions": [
+    {
+      "Type": 1, 
+      "TargetId": 1, 
+      "TargetCount": 1
+    },
+    {
+      "Type": 2, 
+      "TargetId": 3, 
+      "TargetCount": 1
+    }
+  ],
+  "RewardExp": 500,
+  "RewardGold": 200,
+  "RewardItemId": [1, 2]
+}

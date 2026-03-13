@@ -38,13 +38,13 @@ public class MapManager
         return map;
     }
 
-    public void Update(float deltaTime)
+    public void Update(float deltaTime, long nextTickTime)
     {
         if (!isInit) return;
 
         foreach (var map in _maps.Values)
         {
-            map.Update(deltaTime);
+            map.Update(deltaTime, nextTickTime);
         }
     }
 }

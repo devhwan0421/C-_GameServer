@@ -70,7 +70,7 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
                     if (jobTimer.ElapsedMilliseconds > JOB_BUDGET_MS) break;
                 }
 
-                MapManager.Instance.Update(deltaTime);
+                MapManager.Instance.Update(deltaTime, (long)nextTickTime);
                 PlayerManager.Instance.Update(deltaTime);
 
                 UpdateStatistics((long)currentTime, (long)sw.Elapsed.TotalMilliseconds);
@@ -79,7 +79,7 @@ public class GameLogicThread : SynchronizationContext //https://blog.naver.com/v
 
                 if (sw.ElapsedMilliseconds > nextTickTime + MS_PER_TICK)
                 {
-                    Log.Warning("[GameLogicThread] 서버 렉 발생으로 프레임 스킵됨");
+                    //Log.Warning("[GameLogicThread] 서버 렉 발생으로 프레임 스킵됨");
                     nextTickTime = sw.ElapsedMilliseconds;
                 }
             }

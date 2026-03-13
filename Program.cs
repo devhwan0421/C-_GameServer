@@ -43,6 +43,7 @@ class Program
         while (true)
         {
             Socket clientSocket = listenSocket.Accept();
+            clientSocket.NoDelay = true;
 
             UserSession session = SessionManager.Instance.Generate(clientSocket, gameLogicThread, handler);
             if (session != null)

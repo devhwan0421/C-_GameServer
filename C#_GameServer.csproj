@@ -35,7 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="AssemblyInfo.cs" />
     <Compile Include="Common\Packet.cs" />
+    <None Include=".github\workflows\deploy.yml" />
     <None Include="CsharpGameServer-Doc\doc\networking.md" />
     <Compile Include="DataManage\ItemData.cs" />
     <Compile Include="DataManage\MapData.cs" />
@@ -70,6 +72,7 @@
     <Compile Include="DataManage\MonsterData.cs" />
     <Compile Include="Manager\NpcManager.cs" />
     <Compile Include="Manager\MapManager.cs" />
+    <Compile Include="Network\PacketExtenstions.cs" />
     <Compile Include="Network\PacketHandler.cs" />
     <Compile Include="Network\PacketMaker.cs" />
     <Compile Include="Network\PacketParser.cs" />
@@ -191,7 +194,6 @@
     <Reference Include="System.Transactions" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include=".github\workflows\" />
     <Folder Include="Game\Npc\" />
   </ItemGroup>
   <ItemGroup>

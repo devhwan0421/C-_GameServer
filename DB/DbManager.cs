@@ -197,7 +197,7 @@ public class DbManager
                     if (items != null && items.Count > 0)
                     {
                         string itemSql = @"UPDATE inventory SET
-                                           count=@count, is_equipped=@is_equipped, enhancement=@enhancement
+                                           owner_id=@owner_id, count=@count, is_equipped=@is_equipped, enhancement=@enhancement
                                            WHERE id=@id";
                         db.Execute(itemSql, items, transaction);
                     }
